@@ -1,0 +1,117 @@
+import type { User, Book, Borrow, Reservation } from "./types"
+
+export const mockCurrentUser: User = {
+  id: "user-1",
+  name: "Alex Johnson",
+  email: "alex.johnson@university.edu",
+  role: "student",
+  score: 8450,
+  level: "gold",
+  borrowingLimit: 10,
+  activeBorrows: 3,
+  joinedDate: new Date("2022-01-15"),
+  profileImage: "/profile-avatar.png",
+}
+
+export const mockAdminUser: User = {
+  id: "admin-1",
+  name: "Dr. Sarah Mitchell",
+  email: "s.mitchell@university.edu",
+  role: "admin",
+  score: 99999,
+  level: "platinum",
+  borrowingLimit: 999,
+  activeBorrows: 0,
+  joinedDate: new Date("2020-01-01"),
+  profileImage: "/profile-avatar.png",
+}
+
+export const mockBooks: Book[] = [
+  {
+    id: "book-1",
+    title: "The Midnight Library",
+    author: "Matt Haig",
+    isbn: "9780020195887",
+    genre: ["Fiction", "Fantasy", "Contemporary"],
+    description: "A dazzling novel about all the choices that go into a life well lived.",
+    coverImage: "/midnight-library-cover.png",
+    totalCopies: 5,
+    availableCopies: 2,
+    rating: 4.8,
+    reviewCount: 1250,
+    popularity: 95,
+    demandPressure: "high",
+  },
+  {
+    id: "book-2",
+    title: "Project Hail Mary",
+    author: "Andy Weir",
+    isbn: "9780593135204",
+    genre: ["Science Fiction", "Adventure"],
+    description: "A lone astronaut must save Earth from extinction.",
+    coverImage: "/project-hail-mary-cover.png",
+    totalCopies: 3,
+    availableCopies: 0,
+    rating: 4.7,
+    reviewCount: 2100,
+    popularity: 98,
+    demandPressure: "high",
+    nextAvailableDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  },
+  {
+    id: "book-3",
+    title: "The Silent Patient",
+    author: "Alex Michaelides",
+    isbn: "9781250295522",
+    genre: ["Mystery", "Thriller"],
+    description: "A woman shoots her husband and then never speaks again.",
+    coverImage: "/the-silent-patient-book-cover.jpg",
+    totalCopies: 4,
+    availableCopies: 3,
+    rating: 4.5,
+    reviewCount: 890,
+    popularity: 85,
+    demandPressure: "medium",
+  },
+  {
+    id: "book-4",
+    title: "Atomic Habits",
+    author: "James Clear",
+    isbn: "9780735211292",
+    genre: ["Non-Fiction", "Self-Help", "Business"],
+    description: "Transform your habits and achieve extraordinary results.",
+    coverImage: "/atomic-habits-inspired-cover.png",
+    totalCopies: 8,
+    availableCopies: 6,
+    rating: 4.9,
+    reviewCount: 3200,
+    popularity: 99,
+    demandPressure: "low",
+  },
+]
+
+export const mockBorrows: Borrow[] = [
+  {
+    id: "borrow-1",
+    userId: "user-1",
+    bookId: "book-1",
+    startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    expectedReturnDate: new Date(Date.now() + 9 * 24 * 60 * 60 * 1000),
+    isLate: false,
+    status: "active",
+  },
+]
+
+export const mockReservations: Reservation[] = [
+  {
+    id: "res-1",
+    userId: "user-1",
+    bookId: "book-2",
+    requestedDate: new Date(),
+    startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    duration: 14,
+    status: "confirmed",
+    position: 1,
+    totalReservations: 3,
+  },
+]

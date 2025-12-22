@@ -1,0 +1,41 @@
+
+# Node dependencies
+node_modules/
+
+# Next.js build output
+/.next/
+/out/
+
+# Local env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor and IDE
+.vscode/
+.idea/
+
+# Mac
+.DS_Store
+
+# Coverage and tests
+/coverage/
+.nyc_output/
+
+# Build/cache
+/dist/
+/.cache/
+
+# Vercel and deployment
+/.vercel/
+
+# Misc
+*.log
+Thumbs.db
