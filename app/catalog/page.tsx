@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import { useState, useMemo } from "react"
-import { Navigation } from "@/components/navigation"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { SearchIcon, Filter, BookOpen, TrendingUp } from "lucide-react"
-import { mockBooks } from "@/lib/mock-data"
-import type { Book } from "@/lib/types"
-import Link from "next/link"
-
+import { useState, useMemo, useEffect } from "react";
+import { Navigation } from "@/components/navigation";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { SearchIcon, Filter, BookOpen, TrendingUp } from "lucide-react";
+import { mockBooks } from "@/lib/mock-data";
+import type { Book } from "@/lib/types";
+import Link from "next/link";
+import { fetchBooks } from "@/services/book.service";
 interface FilterState {
-  search: string
-  genres: string[]
-  availability: "all" | "available" | "reserved"
-  demandLevel: "all" | "low" | "medium" | "high"
+  search: string;
+  genres: string[];
+  availability: "all" | "available" | "reserved";
+  demandLevel: "all" | "low" | "medium" | "high";
 }
 
 export default function CatalogPage() {
@@ -24,72 +24,105 @@ export default function CatalogPage() {
     genres: [],
     availability: "all",
     demandLevel: "all",
-  })
+  });
 
-  const [sortBy, setSortBy] = useState<"popularity" | "rating" | "newest" | "demand">("popularity")
-  const [showFilters, setShowFilters] = useState(false)
+  const [sortBy, setSortBy] = useState<
+    "popularity" | "rating" | "newest" | "demand"
+  >("popularity");
+  const [showFilters, setShowFilters] = useState(false);
+  const [books, setBooks] = useState<Book[]>([]); // start with mock data
+  // const [books, setBooks] = useState<Book[]>(mockBooks); // start with mock data
 
-  const allGenres = Array.from(new Set(mockBooks.flatMap((b) => b.genre))).sort()
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const allGenres = Array.from(new Set(books.flatMap((b) => b.genre))).sort();
 
   const filteredBooks = useMemo(() => {
-    let results = [...mockBooks]
-
+    let results = [...books];
     if (filters.search) {
-      const searchLower = filters.search.toLowerCase()
+      const searchLower = filters.search.toLowerCase();
       results = results.filter(
         (b) =>
           b.title.toLowerCase().includes(searchLower) ||
           b.author.toLowerCase().includes(searchLower) ||
-          b.description.toLowerCase().includes(searchLower),
-      )
+          b.description.toLowerCase().includes(searchLower)
+      );
     }
 
     if (filters.genres.length > 0) {
-      results = results.filter((b) => filters.genres.some((g) => b.genre.includes(g)))
+      results = results.filter((b) =>
+        filters?.genres?.some((g) => b.genre.includes(g))
+      );
     }
 
     if (filters.availability === "available") {
-      results = results.filter((b) => b.availableCopies > 0)
+      results = results.filter((b) => b.availableCopies > 0);
     } else if (filters.availability === "reserved") {
-      results = results.filter((b) => b.availableCopies === 0)
+      results = results.filter((b) => b.availableCopies === 0);
     }
 
     if (filters.demandLevel !== "all") {
-      results = results.filter((b) => b.demandPressure === filters.demandLevel)
+      results = results.filter((b) => b.demandPressure === filters.demandLevel);
     }
-
     // Sorting
     switch (sortBy) {
       case "popularity":
-        results.sort((a, b) => b.popularity - a.popularity)
-        break
+        results.sort((a, b) => b.popularity - a.popularity);
+        break;
       case "rating":
-        results.sort((a, b) => b.rating - a.rating)
-        break
+        results.sort((a, b) => b.rating - a.rating);
+        break;
       case "demand":
-        const demandOrder = { high: 3, medium: 2, low: 1 }
-        results.sort((a, b) => demandOrder[b.demandPressure] - demandOrder[a.demandPressure])
-        break
+        const demandOrder = { high: 3, medium: 2, low: 1 };
+        results.sort(
+          (a, b) =>
+            demandOrder[b.demandPressure] - demandOrder[a.demandPressure]
+        );
+        break;
       case "newest":
       default:
-        break
+        break;
     }
 
-    return results
-  }, [filters, sortBy])
+    return results;
+  }, [filters, sortBy, books]);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchBooks(filters.search);
+        if (mounted && Array.isArray(data)) setBooks(data as any);
+      } catch (err: any) {
+        console.error("Failed to load books:", err);
+        if (mounted)
+          setError(err?.message || "Failed to load books — using local data");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [filters.search]);
 
   const toggleGenre = (genre: string) => {
     setFilters((prev) => ({
       ...prev,
-      genres: prev.genres.includes(genre) ? prev.genres.filter((g) => g !== genre) : [...prev.genres, genre],
-    }))
-  }
+      genres: prev.genres.includes(genre)
+        ? prev.genres.filter((g) => g !== genre)
+        : [...prev.genres, genre],
+    }));
+  };
 
   const activeFilterCount =
     (filters.search ? 1 : 0) +
     filters.genres.length +
     (filters.availability !== "all" ? 1 : 0) +
-    (filters.demandLevel !== "all" ? 1 : 0)
+    (filters.demandLevel !== "all" ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,7 +132,13 @@ export default function CatalogPage() {
         {/* Header */}
         <div className="mb-8 animate-fadeIn">
           <h1 className="text-3xl font-bold mb-2">Book Catalog</h1>
-          <p className="text-muted-foreground">Browse {mockBooks.length} books in our collection</p>
+          <p className="text-muted-foreground">
+            {loading
+              ? "Loading books..."
+              : error
+              ? `${books.length} books (error: ${error})`
+              : `Browse ${books.length} books in our collection`}
+          </p>
         </div>
 
         {/* Search & Controls */}
@@ -110,7 +149,9 @@ export default function CatalogPage() {
               placeholder="Search by title, author, or description..."
               className="pl-10"
               value={filters.search}
-              onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, search: e.target.value }))
+              }
             />
           </div>
           <Button
@@ -120,24 +161,31 @@ export default function CatalogPage() {
             size="lg"
           >
             <Filter className="w-4 h-4" />
-            Filters {activeFilterCount > 0 && <Badge variant="secondary">{activeFilterCount}</Badge>}
+            Filters{" "}
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary">{activeFilterCount}</Badge>
+            )}
           </Button>
         </div>
 
         {/* Sort */}
         <div className="mb-6 flex gap-2">
-          <span className="text-sm text-muted-foreground self-center">Sort by:</span>
-          {(["popularity", "rating", "demand", "newest"] as const).map((sort) => (
-            <Button
-              key={sort}
-              size="sm"
-              variant={sortBy === sort ? "default" : "outline"}
-              className={sortBy === sort ? "" : "bg-transparent"}
-              onClick={() => setSortBy(sort)}
-            >
-              {sort.charAt(0).toUpperCase() + sort.slice(1)}
-            </Button>
-          ))}
+          <span className="text-sm text-muted-foreground self-center">
+            Sort by:
+          </span>
+          {(["popularity", "rating", "demand", "newest"] as const).map(
+            (sort) => (
+              <Button
+                key={sort}
+                size="sm"
+                variant={sortBy === sort ? "default" : "outline"}
+                className={sortBy === sort ? "" : "bg-transparent"}
+                onClick={() => setSortBy(sort)}
+              >
+                {sort.charAt(0).toUpperCase() + sort.slice(1)}
+              </Button>
+            )
+          )}
         </div>
 
         {/* Filters Panel */}
@@ -152,11 +200,24 @@ export default function CatalogPage() {
                     <Button
                       key={status}
                       size="sm"
-                      variant={filters.availability === status ? "default" : "outline"}
-                      className={filters.availability === status ? "" : "bg-transparent"}
-                      onClick={() => setFilters((prev) => ({ ...prev, availability: status }))}
+                      variant={
+                        filters.availability === status ? "default" : "outline"
+                      }
+                      className={
+                        filters.availability === status ? "" : "bg-transparent"
+                      }
+                      onClick={() =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          availability: status,
+                        }))
+                      }
                     >
-                      {status === "all" ? "All Copies" : status === "available" ? "In Stock" : "Reserved"}
+                      {status === "all"
+                        ? "All Copies"
+                        : status === "available"
+                        ? "In Stock"
+                        : "Reserved"}
                     </Button>
                   ))}
                 </div>
@@ -170,9 +231,15 @@ export default function CatalogPage() {
                     <Button
                       key={level}
                       size="sm"
-                      variant={filters.demandLevel === level ? "default" : "outline"}
-                      className={filters.demandLevel === level ? "" : "bg-transparent"}
-                      onClick={() => setFilters((prev) => ({ ...prev, demandLevel: level }))}
+                      variant={
+                        filters.demandLevel === level ? "default" : "outline"
+                      }
+                      className={
+                        filters.demandLevel === level ? "" : "bg-transparent"
+                      }
+                      onClick={() =>
+                        setFilters((prev) => ({ ...prev, demandLevel: level }))
+                      }
                     >
                       {level.charAt(0).toUpperCase() + level.slice(1)}
                     </Button>
@@ -188,8 +255,12 @@ export default function CatalogPage() {
                     <Button
                       key={genre}
                       size="sm"
-                      variant={filters.genres.includes(genre) ? "default" : "outline"}
-                      className={filters.genres.includes(genre) ? "" : "bg-transparent"}
+                      variant={
+                        filters.genres.includes(genre) ? "default" : "outline"
+                      }
+                      className={
+                        filters.genres.includes(genre) ? "" : "bg-transparent"
+                      }
                       onClick={() => toggleGenre(genre)}
                     >
                       {genre}
@@ -219,11 +290,16 @@ export default function CatalogPage() {
         {/* Books Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredBooks.length > 0 ? (
-            filteredBooks.map((book, index) => <BookCard key={book.id} book={book} delay={index * 50} />)
+            filteredBooks.map((book, index) => (
+              <BookCard key={book.id} book={book} delay={index * 50} />
+            ))
           ) : (
             <div className="col-span-full py-12 text-center">
               <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <p className="text-muted-foreground mb-4">No books match your filters</p>
+              <p className="text-muted-foreground mb-4">
+                {loading ? "Loading books..." : "No books match your filters"}
+              </p>
+
               <Button
                 variant="outline"
                 onClick={() =>
@@ -243,15 +319,16 @@ export default function CatalogPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
 
 function BookCard({ book, delay }: { book: Book; delay: number }) {
-  const availabilityStatus = book.availableCopies > 0 ? "available" : "reserved"
+  const availabilityStatus =
+    book.availableCopies > 0 ? "available" : "reserved";
   const availabilityColor =
     availabilityStatus === "available"
       ? "bg-success/10 text-success border-success/30"
-      : "bg-amber-500/10 text-amber-600 border-amber-500/30"
+      : "bg-amber-500/10 text-amber-600 border-amber-500/30";
 
   return (
     <Card
@@ -262,7 +339,9 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
         <div className="relative h-56 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
           <BookOpen className="w-16 h-16 text-primary opacity-40 group-hover:scale-110 transition-smooth" />
           <Badge className={`absolute top-2 right-2 ${availabilityColor}`}>
-            {availabilityStatus === "available" ? `${book.availableCopies} available` : "Reserved"}
+            {availabilityStatus === "available"
+              ? `${book.availableCopies} available`
+              : "Reserved"}
           </Badge>
 
           {book.demandPressure === "high" && (
@@ -274,8 +353,12 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
         </div>
 
         <div className="p-4">
-          <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-smooth">{book.title}</h3>
-          <p className="text-sm text-muted-foreground line-clamp-1">{book.author}</p>
+          <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-smooth">
+            {book.title}
+          </h3>
+          <p className="text-sm text-muted-foreground line-clamp-1">
+            {book.author}
+          </p>
 
           <div className="flex gap-2 mt-2 flex-wrap">
             {book.genre.slice(0, 2).map((g) => (
@@ -288,7 +371,9 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
             <div className="flex items-center gap-1">
               <span className="text-sm font-semibold">{book.rating}</span>
-              <span className="text-xs text-muted-foreground">({book.reviewCount})</span>
+              <span className="text-xs text-muted-foreground">
+                ({book.reviewCount})
+              </span>
             </div>
             <Button size="sm" className="text-xs hover-lift">
               View
@@ -297,5 +382,5 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
         </div>
       </Link>
     </Card>
-  )
+  );
 }

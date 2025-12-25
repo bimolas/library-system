@@ -39,23 +39,18 @@ export default function SignupPage() {
 
     setIsLoading(true)
 
-    // Simulate signup delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+   const data = await import("@/services/auth.service").then((mod) =>
+      mod.signup(formData.name, formData.email, formData.password, formData.studentId)
+    ).catch((err) => {
+      setError(err.message || "Signup failed")
+      setIsLoading(false)
+    })
 
-    // Create new user in localStorage
-    const newUser = {
-      id: `user-${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      role: "student",
-      score: 5000,
-      level: "bronze",
-      borrowingLimit: 3,
-      activeBorrows: 0,
-      joinedDate: new Date(),
+    if (!data) {
+      setIsLoading(false)
+      return
     }
-
-    localStorage.setItem("library_user", JSON.stringify(newUser))
+    setIsLoading(false)
     router.push("/dashboard")
   }
 

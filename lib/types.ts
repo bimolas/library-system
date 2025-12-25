@@ -1,4 +1,4 @@
-export type UserRole = "student" | "admin"
+export type UserRole = "USER" | "ADMIN"
 export type BookStatus = "available" | "borrowed" | "reserved"
 export type ReservationStatus = "pending" | "confirmed" | "cancelled" | "fulfilled"
 export type UserStatus = "active" | "warning" | "suspended" | "banned"
@@ -22,7 +22,8 @@ export interface User {
   bonuses: number
   banExpiry?: Date
   banReason?: string
-  preferences?: UserPreferences
+  preferences?: UserPreferences,
+  imageUrl?: string
 }
 
 export interface UserPreferences {

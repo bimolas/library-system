@@ -16,7 +16,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="mb-8 animate-fadeIn">
-          <h1 className="text-3xl font-bold mb-2">Welcome back, {mockCurrentUser.name}!</h1>
+          <h1 className="text-3xl font-bold mb-2">Welcome back, {localStorage.getItem("library_user") ? JSON.parse(localStorage.getItem("library_user")!).name : "Guest"}!</h1>
           <p className="text-muted-foreground">Here's your library overview for today</p>
         </div>
 
