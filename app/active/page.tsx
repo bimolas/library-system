@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useNotification } from "@/lib/notification-context";
 import { useConfirmation } from "@/components/confirmation-modal";
 import { getMyBorrowingsHistory } from "@/services/borrow.service";
+import { getMyReservations } from "@/services/reservations.service";
 
 export default function ActivePage() {
   const [activeTab, setActiveTab] = useState("borrows");
@@ -61,7 +62,8 @@ export default function ActivePage() {
 
       try {
         const historyData = await getMyBorrowingsHistory();
-console.log("Fetched history data:", historyData);
+        const reservationsData = await getMyReservations();
+        const borrowsData = await getMyBorrowingsHistory();
         const normalize = (arr: any[], dateFields: string[]) =>
           (arr || []).map((item: any) => {
             const copy = { ...item };
@@ -72,10 +74,10 @@ console.log("Fetched history data:", historyData);
           });
 
         if (mounted) {
-          // setBorrows(
-          //   normalize(borrowsData, ["startDate", "expectedReturnDate"])
-          // );
-          // setReservations(normalize(reservationsData, ["startDate"]));
+          setBorrows(
+            normalize(borrowsData, ["startDate", "expectedReturnDate"])
+          );
+          setReservations(normalize(reservationsData, ["startDate"]));
           setHistory(
             normalize(historyData, [
               "startDate",
@@ -175,10 +177,10 @@ console.log("Fetched history data:", historyData);
             value="borrows"
             className="mt-6 space-y-4 animate-fadeIn"
           >
-            {mockBorrows.length > 0 ? (
-              mockBorrows.map((borrow) => {
-                const book = mockBooks.find((b) => b.id === borrow.bookId);
-                const daysLeft = daysUntilDue(borrow.expectedReturnDate);
+            {borrows.length > 0 ? (
+              borrows.map((borrow) => {
+                // const book = mockBooks.find((b) => b.id === borrow.bookId);
+                const daysLeft = daysUntilDue(new Date(borrow.dueDate));
                 const isWarning = daysLeft <= 3;
                 const isOverdue = daysLeft < 0;
 
@@ -189,25 +191,25 @@ console.log("Fetched history data:", historyData);
                   >
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex items-start gap-4 flex-1">
-                        <Link href={`/catalog/${book?.id}`}>
+                        <Link href={`/catalog/${borrow?.book?.id}`}>
                           <div className="w-16 h-24 bg-gradient-to-br from-primary/20 to-accent/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
                             <BookOpen className="w-8 h-8 text-primary" />
                           </div>
                         </Link>
 
                         <div className="flex-1 min-w-0">
-                          <Link href={`/catalog/${book?.id}`}>
+                          <Link href={`/catalog/${borrow?.book?.id}`}>
                             <h3 className="text-lg font-semibold hover:text-primary transition-smooth cursor-pointer">
-                              {book?.title}
+                              {borrow?.book?.title}
                             </h3>
                           </Link>
                           <p className="text-sm text-muted-foreground">
-                            {book?.author}
+                            {borrow?.book?.author}
                           </p>
 
                           <div className="flex gap-2 mt-3 flex-wrap">
                             <Badge variant="outline" className="bg-muted/50">
-                              Borrowed: {formatDate(borrow.startDate)}
+                              Borrowed: {formatDate(new Date(borrow.borrowDate))}
                             </Badge>
                           </div>
                         </div>
@@ -239,7 +241,7 @@ console.log("Fetched history data:", historyData);
                           Due Date
                         </p>
                         <p className="font-semibold mt-1">
-                          {formatDate(borrow.expectedReturnDate)}
+                          {formatDate(new Date(borrow.dueDate))}
                         </p>
                       </div>
                       <div>
@@ -264,7 +266,7 @@ console.log("Fetched history data:", historyData);
                           variant="outline"
                           className="bg-transparent hover-lift"
                           onClick={() =>
-                            handleRenew(borrow.id, book?.title || "")
+                            handleRenew(borrow.id,  borrow?.book?.title || "")
                           }
                         >
                           Renew
@@ -274,7 +276,7 @@ console.log("Fetched history data:", historyData);
                           variant="outline"
                           className="bg-transparent hover-lift"
                           onClick={() =>
-                            handleReturn(borrow.id, book?.title || "")
+                            handleReturn(borrow.id, borrow?.book?.title || "")
                           }
                         >
                           Return
@@ -302,9 +304,9 @@ console.log("Fetched history data:", historyData);
             value="reservations"
             className="mt-6 space-y-4 animate-fadeIn"
           >
-            {mockReservations.length > 0 ? (
-              mockReservations.map((reservation) => {
-                const book = mockBooks.find((b) => b.id === reservation.bookId);
+            {reservations.length > 0 ? (
+              reservations.map((reservation) => {
+                // const book = mockBooks.find((b) => b.id === reservation.book.id);
 
                 return (
                   <Card
@@ -313,20 +315,20 @@ console.log("Fetched history data:", historyData);
                   >
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex items-start gap-4 flex-1">
-                        <Link href={`/catalog/${book?.id}`}>
+                        <Link href={`/catalog/${reservation?.book?.id}`}>
                           <div className="w-16 h-24 bg-gradient-to-br from-accent/20 to-primary/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
                             <Calendar className="w-8 h-8 text-accent" />
                           </div>
                         </Link>
 
                         <div className="flex-1 min-w-0">
-                          <Link href={`/catalog/${book?.id}`}>
+                          <Link href={`/catalog/${reservation?.book?.id}`}>
                             <h3 className="text-lg font-semibold hover:text-primary transition-smooth cursor-pointer">
-                              {book?.title}
+                              {reservation?.book?.title}
                             </h3>
                           </Link>
                           <p className="text-sm text-muted-foreground">
-                            {book?.author}
+                            {reservation?.book?.author}
                           </p>
 
                           <div className="flex gap-2 mt-3 flex-wrap">
@@ -348,7 +350,7 @@ console.log("Fetched history data:", historyData);
 
                       <div className="text-right">
                         <p className="text-2xl font-bold text-primary">
-                          #{reservation.position}
+                          #{reservation.priority}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           in queue
@@ -373,7 +375,7 @@ console.log("Fetched history data:", historyData);
                           Duration
                         </p>
                         <p className="font-semibold mt-1">
-                          {reservation.duration} days
+                          {reservation.durationDays} days
                         </p>
                       </div>
                       <div>
@@ -385,7 +387,7 @@ console.log("Fetched history data:", historyData);
                         </p>
                       </div>
                       <div className="flex gap-2 justify-end">
-                        <Link href={`/catalog/${book?.id}`}>
+                        <Link href={`/catalog/${reservation?.book?.id}`}>
                           <Button
                             size="sm"
                             variant="outline"
@@ -401,7 +403,7 @@ console.log("Fetched history data:", historyData);
                           onClick={() =>
                             handleCancelReservation(
                               reservation.id,
-                              book?.title || ""
+                              reservation?.book?.title || ""
                             )
                           }
                         >

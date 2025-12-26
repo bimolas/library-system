@@ -38,7 +38,7 @@ export interface Book {
   title: string
   author: string
   isbn: string
-  genre: string[]
+  genre: string
   description: string
   coverImage: string
   totalCopies: number

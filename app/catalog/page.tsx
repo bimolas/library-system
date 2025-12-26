@@ -80,6 +80,12 @@ export default function CatalogPage() {
         );
         break;
       case "newest":
+        results.sort((a, b) => {
+          const dateA = a.publishedYear ? new Date(a.publishedYear, 0, 1) : new Date(0);
+          const dateB = b.publishedYear ? new Date(b.publishedYear, 0, 1) : new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        break;
       default:
         break;
     }
@@ -354,25 +360,23 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
 
         <div className="p-4">
           <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-smooth">
-            {book.title}
+            {book.title.slice(0, 30) + (book.title.length > 30 ? "..." : "")}
           </h3>
           <p className="text-sm text-muted-foreground line-clamp-1">
             {book.author}
           </p>
 
           <div className="flex gap-2 mt-2 flex-wrap">
-            {book.genre.slice(0, 2).map((g) => (
-              <Badge key={g} variant="secondary" className="text-xs">
-                {g}
+              <Badge key={book.genre} variant="secondary" className="text-xs">
+                {book.genre}
               </Badge>
-            ))}
           </div>
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
             <div className="flex items-center gap-1">
-              <span className="text-sm font-semibold">{book.rating}</span>
+              <span className="text-sm font-semibold">{book.rating || "N/A"}</span>
               <span className="text-xs text-muted-foreground">
-                ({book.reviewCount})
+                ({book.reviewCount || 0})
               </span>
             </div>
             <Button size="sm" className="text-xs hover-lift">
