@@ -8,6 +8,7 @@ import type { Book } from "@/lib/types"
 import { useNotification } from "@/lib/notification-context"
 import { useLibrary } from "@/lib/library-context"
 import { useAuth } from "@/lib/auth-context"
+import { borrowBook } from "@/services/borrow.service"
 
 interface BorrowModalProps {
   book: Book
@@ -22,7 +23,7 @@ export default function BorrowModal({ book, isOpen, onClose, userScore, userLeve
   const [isProcessing, setIsProcessing] = useState(false)
   const [step, setStep] = useState<"select" | "confirm" | "success">("select")
   const { showSuccess, showError } = useNotification()
-  const { borrowBook } = useLibrary()
+  // const { borrowBook } = useLibrary()
   const { user } = useAuth()
 
   const getMaxBorrowDays = () => {
@@ -46,11 +47,11 @@ export default function BorrowModal({ book, isOpen, onClose, userScore, userLeve
     }
 
     setIsProcessing(true)
-    const result = await borrowBook(book.id, user.id, borrowDays)
+    const result = await borrowBook(book.id, borrowDays)
 
-    if (result.success) {
+    if (result) {
       setStep("success")
-      showSuccess(result.message)
+      showSuccess('Book borrowed successfully!')
       setTimeout(() => {
         onClose()
         setStep("select")

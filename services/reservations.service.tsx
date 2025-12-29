@@ -16,3 +16,36 @@ export async function getMyReservations() {
     const data = await response.json();
     return data;
 }
+
+export async function reserveBook(bookId: string, durationDays: number, startDate: string) {
+    const response = await fetch(`${BASE_URL}/api/reservations`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getAccessToken()}`,
+        },
+        body: JSON.stringify({ bookId, durationDays, startDate }),
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(err.message || 'Failed to reserve book');
+    }
+    const data = await response.json();
+    return data;
+}
+
+export async function cancelReservation(reservationId: string) {
+    const response = await fetch(`${BASE_URL}/api/reservations/${reservationId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getAccessToken()}`,
+        },
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(err.message || 'Failed to cancel reservation');
+    }
+    const data = await response.json();
+    return data;
+}

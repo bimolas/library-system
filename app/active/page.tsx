@@ -6,13 +6,23 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Calendar, AlertCircle, CheckCircle2, X } from "lucide-react";
+import {
+  BookOpen,
+  Calendar,
+  AlertCircle,
+  CheckCircle2,
+  X,
+  Clock,
+} from "lucide-react";
 import { mockBorrows, mockReservations, mockBooks } from "@/lib/mock-data";
 import Link from "next/link";
 import { useNotification } from "@/lib/notification-context";
 import { useConfirmation } from "@/components/confirmation-modal";
-import { getMyBorrowingsHistory } from "@/services/borrow.service";
-import { getMyReservations } from "@/services/reservations.service";
+import { getMyBorrowings, returnBook } from "@/services/borrow.service";
+import {
+  cancelReservation,
+  getMyReservations,
+} from "@/services/reservations.service";
 
 export default function ActivePage() {
   const [activeTab, setActiveTab] = useState("borrows");
@@ -41,15 +51,15 @@ export default function ActivePage() {
   const handleRenew = async (borrowId: string, bookTitle: string) => {
     const confirmed = await confirm({
       title: "Renew Book",
-      message: `Do you want to renew "${bookTitle}"? This will extend your borrowing period by 14 days.`,
+      message: `Do you want to renew this book? This will extend your borrowing period by 14 days.`,
       confirmText: "Renew",
       cancelText: "Cancel",
     });
 
     if (confirmed) {
       showNotification(
-        `Successfully renewed "${bookTitle}" for 14 more days!`,
-        "success"
+        "success",
+        "Successfully renewed this book for 14 more days!"
       );
     }
   };
@@ -61,9 +71,9 @@ export default function ActivePage() {
       setError(null);
 
       try {
-        const historyData = await getMyBorrowingsHistory();
+        const historyData = await getMyBorrowings();
         const reservationsData = await getMyReservations();
-        const borrowsData = await getMyBorrowingsHistory();
+        const borrowsData = await getMyBorrowings("ACTIVE");
         const normalize = (arr: any[], dateFields: string[]) =>
           (arr || []).map((item: any) => {
             const copy = { ...item };
@@ -115,10 +125,18 @@ export default function ActivePage() {
     });
 
     if (confirmed) {
-      showNotification(
-        `Return confirmed for "${bookTitle}". Please bring it to the library desk.`,
-        "success"
-      );
+      const data = await returnBook(borrowId);
+      if (data) {
+        showNotification(
+          "success",
+          `Return confirmed for this book. Please bring it to the library desk.`
+        );
+      } else {
+        showNotification(
+          "error",
+          `Failed to confirm return for this book. Please try again later.`
+        );
+      }
     }
   };
 
@@ -135,10 +153,36 @@ export default function ActivePage() {
     });
 
     if (confirmed) {
-      showNotification(
-        `Reservation for "${bookTitle}" has been cancelled.`,
-        "info"
-      );
+      const data = await cancelReservation(reservationId);
+      // i want when the reservation is canceled to refresh the  reservation list
+
+      if (data) {
+        await refreshReservations();
+
+        showNotification(
+          "info",
+          `Reservation for this book has been cancelled.`
+        );
+      } else {
+        showNotification(
+          "error",
+          `Failed to cancel reservation for this book. Please try again later.`
+        );
+      }
+    }
+  };
+
+  const refreshReservations = async () => {
+    try {
+      const reservationData = await getMyReservations();
+      const normalized = (reservationData || []).map((r: any) => ({
+        ...r,
+        startDate: r.startDate ? new Date(r.startDate) : r.startDate,
+      }));
+      setReservations(normalized);
+    } catch (error) {
+      setError("Failed to refresh reservations");
+      console.error("Failed to refresh reservations:", error);
     }
   };
 
@@ -209,7 +253,8 @@ export default function ActivePage() {
 
                           <div className="flex gap-2 mt-3 flex-wrap">
                             <Badge variant="outline" className="bg-muted/50">
-                              Borrowed: {formatDate(new Date(borrow.borrowDate))}
+                              Borrowed:{" "}
+                              {formatDate(new Date(borrow.borrowDate))}
                             </Badge>
                           </div>
                         </div>
@@ -266,7 +311,7 @@ export default function ActivePage() {
                           variant="outline"
                           className="bg-transparent hover-lift"
                           onClick={() =>
-                            handleRenew(borrow.id,  borrow?.book?.title || "")
+                            handleRenew(borrow.id, borrow?.book?.title || "")
                           }
                         >
                           Renew
@@ -398,7 +443,7 @@ export default function ActivePage() {
                         </Link>
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           className="text-destructive hover:text-destructive hover-lift"
                           onClick={() =>
                             handleCancelReservation(
@@ -407,7 +452,8 @@ export default function ActivePage() {
                             )
                           }
                         >
-                          <X className="w-4 h-4" />
+                          Cancel
+                          {/* <X className="w-4 h-4" /> */}
                         </Button>
                       </div>
                     </div>
@@ -430,23 +476,50 @@ export default function ActivePage() {
             )}
           </TabsContent>
 
-           <TabsContent value="history" className="mt-6 animate-fadeIn">
+          <TabsContent value="history" className="mt-6 animate-fadeIn">
             <Card className="p-6 border-border">
               <div className="space-y-4">
                 {history.length > 0 ? (
                   history.map((h) => (
-                    <div key={h.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
+                    <div
+                      key={h.id}
+                      className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border"
+                    >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-16 bg-gradient-to-br from-green-500/20 to-success/20 rounded flex items-center justify-center">
-                          <CheckCircle2 className="w-6 h-6 text-success" />
-                        </div>
+                        {h.status === "COMPLETED" ? (
+                          <div className="w-12 h-16 bg-gradient-to-br from-green-500/20 to-success/20 rounded flex items-center justify-center">
+                            <CheckCircle2 className="w-6 h-6 text-success" />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-16 bg-gradient-to-br from-yellow-500/20 to-warning/20 rounded flex items-center justify-center">
+                            {/* <AlertCircle className="w-6 h-6 text-warning" /> */}
+                            {/* timer icon */}
+                            <Clock className="w-6 h-6 text-warning" />
+                          </div>
+                        )}
                         <div>
-                          <p className="font-semibold">{h.book.title ?? (mockBooks.find(b => b.id === h.bookId)?.title ?? "Unknown")}</p>
-                          <p className="text-sm text-muted-foreground">{h.book.author ?? (mockBooks.find(b => b.id === h.bookId)?.author ?? "")}</p>
-                          <p className="text-sm text-muted-foreground">Returned on {h.dueDate ? formatDate(new Date(h.dueDate)) : "—"}</p>
+                          <p className="font-semibold">
+                            {h.book.title ??
+                              mockBooks.find((b) => b.id === h.bookId)?.title ??
+                              "Unknown"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {h.book.author ??
+                              mockBooks.find((b) => b.id === h.bookId)
+                                ?.author ??
+                              ""}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Returned on{" "}
+                            {h.dueDate ? formatDate(new Date(h.dueDate)) : "—"}
+                          </p>
                         </div>
                       </div>
-                      <Badge className="bg-success/10 text-success border-success/30">{h.pointsGained ? `+${h.pointsGained} points` : "+0 points"}</Badge>
+                      <Badge className="bg-success/10 text-success border-success/30">
+                        {h.pointsGained
+                          ? `+${h.pointsGained} points`
+                          : "+0 points"}
+                      </Badge>
                     </div>
                   ))
                 ) : (
@@ -457,10 +530,14 @@ export default function ActivePage() {
                       </div>
                       <div>
                         <p className="font-semibold">No history yet</p>
-                        <p className="text-sm text-muted-foreground">Borrow and return books to build your history.</p>
+                        <p className="text-sm text-muted-foreground">
+                          Borrow and return books to build your history.
+                        </p>
                       </div>
                     </div>
-                    <Badge className="bg-success/10 text-success border-success/30">—</Badge>
+                    <Badge className="bg-success/10 text-success border-success/30">
+                      —
+                    </Badge>
                   </div>
                 )}
               </div>

@@ -26,6 +26,7 @@ import { useLibrary } from "@/lib/library-context";
 import { useAuth } from "@/lib/auth-context";
 import { useParams } from "next/navigation";
 import { getBookById } from "@/services/book.service";
+import { stat } from "fs";
 
 export default function BookDetailPage() {
   const { books, borrows } = useLibrary();
@@ -38,11 +39,17 @@ export default function BookDetailPage() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [showReserveModal, setShowReserveModal] = useState(false);
+
   const params = useParams();
   const id = params?.id;
 
   const [book, setBook] = useState<any>(books[0] || mockBooks[0]);
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState<{
+    count: number;
+    average: number;
+    distribution: Record<number, number>;
+  } | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   useEffect(() => {
     if (!id) return;
@@ -131,7 +138,7 @@ export default function BookDetailPage() {
                   </Button>
                 )}
 
-                {book.availableCopies === 0 && !userAlreadyBorrowed && (
+                {/* {book.availableCopies === 0 && !userAlreadyBorrowed && (
                   <Button
                     variant="outline"
                     className="w-full bg-transparent"
@@ -139,7 +146,7 @@ export default function BookDetailPage() {
                   >
                     Join Waitlist
                   </Button>
-                )}
+                )} */}
 
                 <Button
                   variant="outline"
@@ -193,9 +200,11 @@ export default function BookDetailPage() {
                   </p>
                   <Badge
                     className={`mt-2 ${
-                      book?.demandPressure ?
-                      demandColors[book?.demandPressure as keyof typeof demandColors] :
-                      demandColors["low"]
+                      book?.demandPressure
+                        ? demandColors[
+                            book?.demandPressure as keyof typeof demandColors
+                          ]
+                        : demandColors["low"]
                     }`}
                   >
                     <TrendingUp className="w-3 h-3 mr-1" />
@@ -236,16 +245,16 @@ export default function BookDetailPage() {
                       <Star
                         key={i}
                         className={`w-5 h-5 ${
-                          i < Math.floor(book.rating)
+                          i < Math.round(stats?.average ?? 0)
                             ? "fill-amber-400 text-amber-400"
                             : "text-border"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="font-semibold">{book.rating}</span>
+                  <span className="font-semibold">{stats?.average ?? 0}</span>
                   <span className="text-muted-foreground">
-                    ({book.reviewCount} reviews)
+                    ({stats?.count ?? 0} reviews)
                   </span>
                 </div>
 
@@ -355,7 +364,12 @@ export default function BookDetailPage() {
           </div>
         </div>
 
-        <ReviewSection bookId={book.id} />
+        <ReviewSection
+          bookId={book.id}
+          onStats={(stats) => {
+            setStats(stats);
+          }}
+        />
       </main>
 
       <BorrowModal
