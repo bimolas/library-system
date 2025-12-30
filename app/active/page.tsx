@@ -126,6 +126,7 @@ export default function ActivePage() {
 
     if (confirmed) {
       const data = await returnBook(borrowId);
+      await refreshBorrows()
       if (data) {
         showNotification(
           "success",
@@ -137,6 +138,27 @@ export default function ActivePage() {
           `Failed to confirm return for this book. Please try again later.`
         );
       }
+    }
+  };
+
+  const refreshBorrows = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const borrowData = await getMyBorrowings("ACTIVE");
+      const normalized = (borrowData || []).map((b: any) => ({
+        ...b,
+        startDate: b.startDate ? new Date(b.startDate) : b.startDate,
+        expectedReturnDate: b.expectedReturnDate
+          ? new Date(b.expectedReturnDate)
+          : b.expectedReturnDate,
+      }));
+      setBorrows(normalized);
+    } catch (error) {
+      setError("Failed to refresh borrowings");
+      console.error("Failed to refresh borrowings:", error);
+    } finally {
+      setLoading(false);
     }
   };
 

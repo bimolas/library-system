@@ -9,6 +9,7 @@ import { useNotification } from "@/lib/notification-context";
 import { useLibrary } from "@/lib/library-context";
 import { useAuth } from "@/lib/auth-context";
 import { getMyReservations, reserveBook } from "@/services/reservations.service";
+import { getUser } from "@/services/auth.service";
 
 
 interface ReserveModalProps {
@@ -36,7 +37,7 @@ export default function ReserveModal({
 
   // const { existingReservations, setExistingReservations } = useState<any[]>([]);
   // const { reserveBook, reservations } = useLibrary()
-  const { user } = useAuth();
+  const  user  = getUser();
   const existingReservations = useMemo(
     () =>
       reservations

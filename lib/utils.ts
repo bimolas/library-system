@@ -1,6 +1,14 @@
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
+
+ export const tierThresholds: Record<string, number> = {
+    Bronze: 0,
+    Silver: 500,
+    Gold: 1000,
+    Platinum: 2000,
+  };
+ export const tiers = ["Bronze", "Silver", "Gold", "Platinum"];

@@ -1,24 +1,11 @@
 import { Book } from "@/lib/types";
 import { getAccessToken } from "./auth.service";
+import { apiGetJson, apiPostJson } from "./api-client";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000/api";
 
-// export interface Book {
-//     id: string
-//     title: string
-//     author: string
-//     isbn: string
-//     description: string
-//     publicationYear: number
-// }
-
 export async function fetchBooks(search: string = ""): Promise<Book[]> {
-  const res = await fetch(`${BASE_URL || ""}/books/search?q=${search}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getAccessToken()}`,
-    },
-  });
+  const res = await apiGetJson<any>(`${BASE_URL || ""}/books/search?q=${search}`);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
@@ -52,12 +39,7 @@ export async function fetchBooks(search: string = ""): Promise<Book[]> {
 }
 
 export async function getBookById(bookId: string): Promise<Book> {
-  const res = await fetch(`${BASE_URL || ""}/books/${bookId}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getAccessToken()}`,
-    },
-  });
+  const res = await apiGetJson<any>(`${BASE_URL || ""}/books/${bookId}`);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
@@ -89,12 +71,7 @@ export async function getBookById(bookId: string): Promise<Book> {
 }
 
 export async function getComments(bookId: string): Promise<any[]> {
-  const res = await fetch(`${BASE_URL || ""}/books/${bookId}/comments`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getAccessToken()}`,
-    },
-  });
+  const res = await apiGetJson<any>(`${BASE_URL || ""}/books/${bookId}/comments`);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
@@ -110,14 +87,7 @@ export async function createComment(
   message: string,
   rating: number
 ): Promise<any> {
-  const res = await fetch(`${BASE_URL || ""}/books/${bookId}/comments`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getAccessToken()}`,
-    },
-    body: JSON.stringify({ message, rating }),
-  });
+  const res = await apiPostJson(`${BASE_URL || ""}/books/${bookId}/comments`, { message, rating });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
@@ -127,3 +97,5 @@ export async function createComment(
   const data = await res.json();
   return data;
 }
+
+

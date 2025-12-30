@@ -23,7 +23,11 @@ export interface User {
   banExpiry?: Date
   banReason?: string
   preferences?: UserPreferences,
-  imageUrl?: string
+  imageUrl?: string,
+  currentScore?: number,
+  tier?: string,
+  createdAt?: any,
+  borrowCount?: number,
 }
 
 export interface UserPreferences {
