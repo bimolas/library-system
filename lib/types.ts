@@ -59,6 +59,7 @@ export interface Book {
   borrowCount: number
   monthlyBorrows: number
   lastBorrowed?: Date
+  createdAt?: any
 }
 
 export interface Borrow {

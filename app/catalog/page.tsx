@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { SearchIcon, Filter, BookOpen, TrendingUp } from "lucide-react";
+import { SearchIcon, Filter, BookOpen, TrendingUp, Star } from "lucide-react";
 import { mockBooks } from "@/lib/mock-data";
 import type { Book } from "@/lib/types";
 import Link from "next/link";
@@ -36,7 +36,11 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const allGenres = Array.from(new Set(books.flatMap((b) => b.genre))).sort();
-
+  const demandeLevelValues: any = {
+    low: 1,
+    medium: 5,
+    high: 10,
+  };
   const filteredBooks = useMemo(() => {
     let results = [...books];
     if (filters.search) {
@@ -62,27 +66,23 @@ export default function CatalogPage() {
     }
 
     if (filters.demandLevel !== "all") {
-      results = results.filter((b) => b.demandPressure === filters.demandLevel);
+      results = results.filter((b) => b.borrowCount <= demandeLevelValues[filters.demandLevel]);
     }
     // Sorting
     switch (sortBy) {
       case "popularity":
-        results.sort((a, b) => b.popularity - a.popularity);
+        results.sort((a, b) => (b.borrowCount || 0) - (a.borrowCount || 0));
         break;
       case "rating":
         results.sort((a, b) => b.rating - a.rating);
         break;
       case "demand":
-        const demandOrder = { high: 3, medium: 2, low: 1 };
-        results.sort(
-          (a, b) =>
-            demandOrder[b.demandPressure] - demandOrder[a.demandPressure]
-        );
+        results.sort((a, b) => (b.borrowCount || 0) - (a.borrowCount || 0));
         break;
       case "newest":
         results.sort((a, b) => {
-          const dateA = a.publishedYear ? new Date(a.publishedYear, 0, 1) : new Date(0);
-          const dateB = b.publishedYear ? new Date(b.publishedYear, 0, 1) : new Date(0);
+          const dateA = a.createdAt ? new Date(a.createdAt, 0, 1) : new Date(0);
+          const dateB = b.createdAt ? new Date(b.createdAt, 0, 1) : new Date(0);
           return dateB.getTime() - dateA.getTime();
         });
         break;
@@ -332,7 +332,7 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
   const availabilityStatus =
     book.availableCopies > 0 ? "available" : "reserved";
   const availabilityColor =
-    availabilityStatus === "available"
+    book.availableCopies > 0
       ? "bg-success/10 text-success border-success/30"
       : "bg-amber-500/10 text-amber-600 border-amber-500/30";
 
@@ -349,8 +349,7 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
               ? `${book.availableCopies} available`
               : "Reserved"}
           </Badge>
-
-          {book.demandPressure === "high" && (
+          {book.borrowCount > 10 && (
             <Badge className="absolute top-2 left-2 bg-destructive/10 text-destructive border-destructive/30">
               <TrendingUp className="w-3 h-3 mr-1" />
               High Demand
@@ -367,16 +366,32 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
           </p>
 
           <div className="flex gap-2 mt-2 flex-wrap">
-              <Badge key={book.genre} variant="secondary" className="text-xs">
-                {book.genre}
-              </Badge>
+            <Badge key={book.genre} variant="secondary" className="text-xs">
+              {book.genre}
+            </Badge>
           </div>
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
             <div className="flex items-center gap-1">
-              <span className="text-sm font-semibold">{book.rating || "N/A"}</span>
+              <div className="flex items-center gap-1">
+                <div className="flex gap-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${
+                        i < Math.floor(book.rating)
+                          ? "fill-accent text-accent"
+                          : "text-border"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {book.rating.toString().slice(0, 3)}
+                </span>
+              </div>
               <span className="text-xs text-muted-foreground">
-                ({book.reviewCount || 0})
+                ({book.reviewCount || 0} reviews)
               </span>
             </div>
             <Button size="sm" className="text-xs hover-lift">

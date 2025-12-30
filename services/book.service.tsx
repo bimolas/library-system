@@ -5,7 +5,9 @@ import { apiGetJson, apiPostJson } from "./api-client";
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000/api";
 
 export async function fetchBooks(search: string = ""): Promise<Book[]> {
-  const res = await apiGetJson<any>(`${BASE_URL || ""}/books/search?q=${search}`);
+  const res = await apiGetJson<any>(
+    `${BASE_URL || ""}/books/search?q=${search}`
+  );
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
@@ -18,21 +20,22 @@ export async function fetchBooks(search: string = ""): Promise<Book[]> {
       title: item.title,
       author: item.author,
       isbn: item.isbn,
-      genre: item?.genre || [],
+      genre: item?.genre || "",
       description: item.description,
       coverImage: item.coverImage || "",
       totalCopies: item.totalCopies || 0,
       availableCopies: item.availableCopies || 0,
-      rating: item.rating || 0,
+      rating: item.rating ,
       reviewCount: item.reviewCount,
       popularity: item.popularity,
       demandPressure: item.demandPressure,
       nextAvailableDate: item.nextAvailableDate
-        ? new Date(item.nextAvailableDate)
-        : undefined,
+      ? new Date(item.nextAvailableDate)
+      : undefined,
       publisher: item.publisher || "",
       publishedYear: item.publishedYear || 0,
       pages: item.pages || 0,
+      borrowCount: item.borrowCount,
     };
   }) as Book[];
   return data;
@@ -71,7 +74,9 @@ export async function getBookById(bookId: string): Promise<Book> {
 }
 
 export async function getComments(bookId: string): Promise<any[]> {
-  const res = await apiGetJson<any>(`${BASE_URL || ""}/books/${bookId}/comments`);
+  const res = await apiGetJson<any>(
+    `${BASE_URL || ""}/books/${bookId}/comments`
+  );
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
@@ -87,7 +92,10 @@ export async function createComment(
   message: string,
   rating: number
 ): Promise<any> {
-  const res = await apiPostJson(`${BASE_URL || ""}/books/${bookId}/comments`, { message, rating });
+  const res = await apiPostJson(`${BASE_URL || ""}/books/${bookId}/comments`, {
+    message,
+    rating,
+  });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
@@ -98,4 +106,67 @@ export async function createComment(
   return data;
 }
 
+export async function getMyRecommendedBooks(): Promise<any[]> {
+  const res = await apiGetJson<any>(
+    `${BASE_URL || ""}/analytics/user/recommendations`
+  );
 
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || "Failed to fetch recommended books");
+  }
+
+  const data = (await res.json()).map((item: any) => {
+    return {
+      id: item.id,
+      title: item.title,
+      author: item.author,
+      isbn: item.isbn,
+      genre: item?.genre,
+      description: item.description,
+      coverImage: item.coverImage || "",
+      totalCopies: item.totalCopies || 0,
+      availableCopies: item.availableCopies || 0,
+      rating: item.rating || 0,
+      reviewCount: item.reviewCount,
+      popularity: item.popularity,
+      demandPressure: item.demandPressure,
+      nextAvailableDate: item.nextAvailableDate
+        ? new Date(item.nextAvailableDate)
+        : undefined,
+      publisher: item.publisher || "",
+      publishedYear: item.publishedYear || 0,
+      pages: item.pages || 0,
+    } as Book;
+  }) as Book[];
+  return data;
+}
+
+
+export async function getTrendingBooks(): Promise<any[]> {
+  const res = await apiGetJson<any>(`${BASE_URL || ""}/analytics/trending-books`);
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || "Failed to fetch trending books");
+  }
+
+  const data = (await res.json()).map((item: any) => {
+    return {
+      id: item.id,
+      title: item.title,
+      author: item.author,
+      genre: item?.genre,
+      totalCopies: item.totalCopies || 0,
+      availableCopies: item.availableCopies || 0,
+      rating: item.avgRating || 0,
+      reviewCount: item.reviewCount,
+      demandPressure: item.demandPressure,
+      borrowCount: item.borrowCount,
+      nextAvailableDate: item.nextAvailableDate
+        ? new Date(item.nextAvailableDate)
+        : undefined,
+    } as Book;
+  }) as Book[];
+  return data;
+}
