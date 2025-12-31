@@ -27,7 +27,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useParams } from "next/navigation";
 import { getBookById } from "@/services/book.service";
 import { stat } from "fs";
-
+const BASE_URL =  "http://localhost:3000";
 export default function BookDetailPage() {
   const { books, borrows } = useLibrary();
   const { user } = useAuth();
@@ -113,7 +113,18 @@ export default function BookDetailPage() {
             <Card className="p-6 border-border sticky top-24">
               <div className="w-full h-80 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mb-6 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                <BookOpen className="w-20 h-20 text-primary opacity-40" />
+                {book.coverImage?.startsWith(BASE_URL) ? (
+                  <img
+                    src={book.coverImage}
+                    alt={`${book.title} cover`}
+                    className="w-full h-full object-cover block w-16 h-16 text-primary opacity-80 "
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <BookOpen className="w-20 h-20 text-primary opacity-40" />
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3 mb-6">

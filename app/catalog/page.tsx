@@ -17,6 +17,7 @@ interface FilterState {
   availability: "all" | "available" | "reserved";
   demandLevel: "all" | "low" | "medium" | "high";
 }
+const BASE_URL = "http://localhost:3000";
 
 export default function CatalogPage() {
   const [filters, setFilters] = useState<FilterState>({
@@ -25,7 +26,6 @@ export default function CatalogPage() {
     availability: "all",
     demandLevel: "all",
   });
-
   const [sortBy, setSortBy] = useState<
     "popularity" | "rating" | "newest" | "demand"
   >("popularity");
@@ -66,7 +66,9 @@ export default function CatalogPage() {
     }
 
     if (filters.demandLevel !== "all") {
-      results = results.filter((b) => b.borrowCount <= demandeLevelValues[filters.demandLevel]);
+      results = results.filter(
+        (b) => b.borrowCount <= demandeLevelValues[filters.demandLevel]
+      );
     }
     // Sorting
     switch (sortBy) {
@@ -343,7 +345,18 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
     >
       <Link href={`/catalog/${book.id}`} className="block">
         <div className="relative h-56 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
-          <BookOpen className="w-16 h-16 text-primary opacity-40 group-hover:scale-110 transition-smooth" />
+          {book.coverImage?.startsWith(BASE_URL) ? (
+            <img
+              src={book.coverImage}
+              alt={`${book.title} cover`}
+              className="w-full h-full object-cover block w-16 h-16 text-primary opacity-60 group-hover:scale-110 transition-smooth"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <BookOpen className="w-16 h-16 text-primary opacity-40 group-hover:scale-110 transition-smooth" />
+            </div>
+          )}
           <Badge className={`absolute top-2 right-2 ${availabilityColor}`}>
             {availabilityStatus === "available"
               ? `${book.availableCopies} available`

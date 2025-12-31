@@ -22,7 +22,7 @@ import {
 import { AlertCircle, TrendingUp, Users, BookOpen, Clock } from "lucide-react";
 import { useLibrary } from "@/lib/library-context";
 import { useEffect, useState } from "react";
-import { getTrendingBooks } from "@/services/book.service";
+import { getAnalyticsSummary, getTrendingBooks } from "@/services/book.service";
 
 export default function AdminPage() {
   const { books, borrows, reservations } = useLibrary();
@@ -30,7 +30,28 @@ export default function AdminPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [statsData, setStatsData] = useState<any>([
+    {
+      icon: BookOpen,
+      label: "Active Borrows",
+      value: "0",
+      change: "+12 this week",
+    },
+    { icon: Users, label: "Total Users", value: "995", change: "+8 new" },
+    {
+      icon: Clock,
+      label: "Avg. Borrow Duration",
+      value: "0 days",
+      change: "Stable",
+    },
+    {
+      icon: TrendingUp,
+      label: "Reservations",
+      value: "0",
+      change: "Active now",
+    },
+  ]);
+
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -38,9 +59,18 @@ export default function AdminPage() {
       setError(null);
       try {
         const books = await getTrendingBooks();
+        const stats = await getAnalyticsSummary();
 
         if (!mounted) return;
         if (books) setBorrowedBooks(books);
+        if (stats) {
+          const updatedStats = [...statsData];
+          updatedStats[0].value = stats.totalActiveBorrows.toString();
+          updatedStats[1].value = stats.totalUsers.toString();
+          updatedStats[2].value = `${ Math.round(stats.avgBorrowDays) } days`;
+          updatedStats[3].value = stats.totalActiveReservations.toString();
+          setStatsData(updatedStats);
+        }
       } catch (e: any) {
         console.error("Failed to load dashboard data:", e);
         if (mounted) setError(e?.message || "Failed to load dashboard data");
@@ -120,27 +150,27 @@ export default function AdminPage() {
     (r) => r.status === "confirmed"
   ).length;
 
-  const stats = [
-    {
-      icon: BookOpen,
-      label: "Active Borrows",
-      value: activeBorrows.toString(),
-      change: "+12 this week",
-    },
-    { icon: Users, label: "Total Users", value: "995", change: "+8 new" },
-    {
-      icon: Clock,
-      label: "Avg. Borrow Duration",
-      value: "16.2 days",
-      change: "Stable",
-    },
-    {
-      icon: TrendingUp,
-      label: "Reservations",
-      value: activeReservations.toString(),
-      change: "Active now",
-    },
-  ];
+  // const stats = [
+  //   {
+  //     icon: BookOpen,
+  //     label: "Active Borrows",
+  //     value: activeBorrows.toString(),
+  //     change: "+12 this week",
+  //   },
+  //   { icon: Users, label: "Total Users", value: "995", change: "+8 new" },
+  //   {
+  //     icon: Clock,
+  //     label: "Avg. Borrow Duration",
+  //     value: "16.2 days",
+  //     change: "Stable",
+  //   },
+  //   {
+  //     icon: TrendingUp,
+  //     label: "Reservations",
+  //     value: activeReservations.toString(),
+  //     change: "Active now",
+  //   },
+  // ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -155,7 +185,7 @@ export default function AdminPage() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, index) => {
+          {statsData.map((stat:any, index:any) => {
             const Icon = stat.icon;
             return (
               <Card

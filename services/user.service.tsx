@@ -108,3 +108,15 @@ export async function getUserAnalyticsData(userId: string) {
   const data = await res.json();
   return data;
 }
+
+
+export async function banUser(userId:string, body: any) {
+  const res = await apiPostJson(`${BASE_URL || ""}/users/${userId}/ban`, body);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || "Failed to create user");
+  }
+
+  const data = await res.json();
+  return data;
+}

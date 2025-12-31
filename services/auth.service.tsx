@@ -122,38 +122,46 @@ export async function refreshTokens(): Promise<void> {
   setTokens(data.accessToken, data.refreshToken);
 }
 
-export async function updateProfile(
-  id: string,
-  updatedData: Partial<User>,
-  imageFile?: File
-): Promise<User> {
-  const token = localStorage.getItem(ACCESS_KEY) || "";
 
-  let res: Response;
+export async function updateProfile(id:string, updatedData: Partial<User>, imageFile?: File): Promise<User> {
+  const token = localStorage.getItem(ACCESS_KEY) || ""
+
+  let res: Response
   if (imageFile) {
-    const form = new FormData();
+    const form = new FormData()
     // append fields
     Object.entries(updatedData || {}).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        form.append(key, String(value));
+        form.append(key, String(value))
       }
-    });
+    })
     // append image file under "profileImage" (backend should expect this field)
-    form.append("file", imageFile);
-    res = await apiPutJson(`${BASE_URL || ""}/users/${id}`, 
-     form
-    );
+    form.append("file", imageFile)
+    res = await fetch(`${BASE_URL || ""}/users/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      } as any, // allowing FormData request to omit Content-Type
+      body: form,
+    })
   } else {
-    res = await apiPutJson(`${BASE_URL || ""}/users/${id}`, updatedData);
+    res = await fetch(`${BASE_URL || ""}/users/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(updatedData),
+    })
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message || "Profile update failed");
+    const err = await res.json().catch(() => ({ message: res.statusText }))
+    throw new Error(err.message || "Profile update failed")
   }
 
-  const data = (await res.json()) as User;
+  const data = (await res.json()) as User
   // Update stored user
-  setUser(data);
-  return data;
-}
+  setUser(data)
+  return data
+ }

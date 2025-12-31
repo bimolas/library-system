@@ -40,6 +40,7 @@ import {
   getUserReadingAnalytics,
 } from "@/services/user.service";
 import { getMyBorrowings, getUserBorrowings } from "@/services/borrow.service";
+import { BASE_URL } from "@/lib/utils";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -74,13 +75,13 @@ export default function UserDetailPage({ params }: PageProps) {
           setGenreData(
             genres.map((g: any, index: number) => ({
               ...g,
-              value : g.count,
+              value: g.count,
               name: g.genre,
               color: ["#8b5a2b", "#a0522d", "#cd853f", "#deb887"][index % 4],
             }))
           );
         }
-        if(borrowings) setBorrowings(borrowings);
+        if (borrowings) setBorrowings(borrowings);
         console.log("usersData", usersData);
       } catch (e: any) {
         console.error("Failed to load dashboard data:", e);
@@ -199,7 +200,18 @@ export default function UserDetailPage({ params }: PageProps) {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center">
-                <UserCircle className="w-12 h-12 text-primary" />
+                {user?.imageUrl?.startsWith(BASE_URL) ? (
+                  <img
+                    src={user.imageUrl}
+                    alt={`${user.name} profile`}
+                    className="w-full h-full p-1 object-cover rounded-full text-primary "
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <UserCircle className="w-12 h-12 text-primary" />
+                  </div>
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-3 mb-1">
@@ -289,7 +301,9 @@ export default function UserDetailPage({ params }: PageProps) {
             style={{ animationDelay: "90ms" }}
           >
             <div className="text-center">
-              <p className="text-2xl font-bold">{user?.customBorrowDays || 14}</p>
+              <p className="text-2xl font-bold">
+                {user?.customBorrowDays || 14}
+              </p>
               <p className="text-xs text-muted-foreground">Borrow Days</p>
             </div>
           </Card>
@@ -458,23 +472,37 @@ export default function UserDetailPage({ params }: PageProps) {
                       >
                         <td className="py-4 px-4">
                           <div>
-                            <p className="font-semibold">{borrow?.book?.title}</p>
+                            <p className="font-semibold">
+                              {borrow?.book?.title}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {borrow?.book?.author}
                             </p>
                           </div>
                         </td>
                         <td className="text-center py-4 px-4">
-                          {borrow?.borrowDate ? new Date(borrow.borrowDate).toLocaleDateString(
-                            undefined,
-                            { year: "numeric", month: "short", day: "numeric" }
-                          ) : "-"}
+                          {borrow?.borrowDate
+                            ? new Date(borrow.borrowDate).toLocaleDateString(
+                                undefined,
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )
+                            : "-"}
                         </td>
                         <td className="text-center py-4 px-4">
-                          {borrow?.dueDate ? new Date(borrow.dueDate).toLocaleDateString(
-                            undefined,
-                            { year: "numeric", month: "short", day: "numeric" }
-                          ) : "-"}
+                          {borrow?.dueDate
+                            ? new Date(borrow.dueDate).toLocaleDateString(
+                                undefined,
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )
+                            : "-"}
                         </td>
                         <td className="text-center py-4 px-4">
                           <Badge

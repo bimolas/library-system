@@ -23,7 +23,7 @@ import {
 import { useNotification } from "@/lib/notification-context";
 import { useConfirmation } from "@/components/confirmation-modal";
 import Link from "next/link";
-import { createUser, getUsers } from "@/services/user.service";
+import { banUser, createUser, getUsers } from "@/services/user.service";
 import { set } from "date-fns";
 
 interface User {
@@ -63,9 +63,7 @@ export default function AdminUsersPage() {
   const { showNotification } = useNotification();
   const { confirm } = useConfirmation();
 
-  const [users, setUsers] = useState<any[]>([
-    
-  ]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,7 +92,9 @@ export default function AdminUsersPage() {
   }, []);
 
   const filteredUsers = useMemo(() => {
-    const q = String(search ?? "").trim().toLowerCase();
+    const q = String(search ?? "")
+      .trim()
+      .toLowerCase();
     if (!q) return users;
 
     return users.filter((user) => {
@@ -136,30 +136,28 @@ export default function AdminUsersPage() {
   const confirmBan = async () => {
     if (!selectedUser) return;
 
-    const days = Number.parseInt(banDuration);
-    const expiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    try {
+      const days = Number.parseInt(banDuration);
+      const expiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === selectedUser.id
-          ? {
-              ...u,
-              status: "banned" as const,
-              banExpiry: expiry,
-              banReason: banReason || "Policy violation",
-            }
-          : u
-      )
-    );
+      await banUser(selectedUser.id, {
+        days: days,
+        until: expiry,
+        reason: banReason || "Policy violation",
+      });
+      await refreshUsers();
 
-    showNotification(
-      "info",
-      `${selectedUser.name} has been banned for ${days} days.`
-    );
-    setShowBanModal(false);
-    setBanDuration("7");
-    setBanReason("");
-    setSelectedUser(null);
+      showNotification(
+        "info",
+        `${selectedUser.name} has been banned for ${days} days.`
+      );
+      setShowBanModal(false);
+      setBanDuration("7");
+      setBanReason("");
+      setSelectedUser(null);
+    } catch (error) {
+      showNotification("error", "Failed to ban user. Please try again.");
+    }
   };
 
   const handleUnban = async (user: User) => {
@@ -289,7 +287,10 @@ export default function AdminUsersPage() {
           </div>
           <Button
             className="gap-2 hover-lift"
-            onClick={() => { setSearch(""); setShowAddModal(true); }}
+            onClick={() => {
+              setSearch("");
+              setShowAddModal(true);
+            }}
           >
             <UserPlus className="w-4 h-4" />
             Add New User
