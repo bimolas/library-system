@@ -129,7 +129,6 @@ export async function apiPostJson<T = any>(
     if (!token) throw new Error("No access token");
     header = { Authorization: `Bearer ${token}` };
   }
-  console.log("apiPostJson body:", body);
   const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...header },

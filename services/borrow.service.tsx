@@ -24,6 +24,27 @@ export async function getMyBorrowings(filter?: BorrowFilter, limit?: number) {
   return data;
 }
 
+
+export async function getUserBorrowings(userId:string, filter?: BorrowFilter, limit?: number) {
+  const res = await apiGetJson(`${BASE_URL || ""}/borrowing/user/${userId}`);
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || "Failed to fetch borrowings");
+  }
+
+  const data = await res.json();
+  if (filter) {
+    return data.filter((borrow: any) => borrow.status === filter);
+  }
+  if(limit) {
+    return data.filter((_: any, index: number) => index < limit); 
+  }
+  return data;
+}
+
+
+
 export async function borrowBook(bookId: string, durationDays: number) {
   const response = await apiPostJson(`${BASE_URL || ""}/borrowing`, { bookId, durationDays });
 
