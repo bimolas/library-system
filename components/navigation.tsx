@@ -64,7 +64,7 @@ export function Navigation() {
     { href: "/catalog", icon: Search, label: "Catalog" },
     { href: "/admin/books", icon: BookOpen, label: "Manage Books" },
     { href: "/admin/users", icon: Users, label: "Manage Users" },
-    { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
+    // { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
     { href: "/settings", icon: Settings, label: "Settings" },
   ];
 

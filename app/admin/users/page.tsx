@@ -19,11 +19,18 @@ import {
   X,
   UserPlus,
   Timer,
+  Trash2,
 } from "lucide-react";
 import { useNotification } from "@/lib/notification-context";
 import { useConfirmation } from "@/components/confirmation-modal";
 import Link from "next/link";
-import { banUser, createUser, getUsers } from "@/services/user.service";
+import {
+  banUser,
+  createUser,
+  deleteUser,
+  getUsers,
+  unbanUser,
+} from "@/services/user.service";
 import { set } from "date-fns";
 
 interface User {
@@ -160,6 +167,27 @@ export default function AdminUsersPage() {
     }
   };
 
+    const handleDeleteUser = async (user: User) => {
+    const confirmed = await confirm({
+      title: "Delete User",
+      message: `Are you sure you want to permanently delete ${user.name}? This action cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "destructive",
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await deleteUser(user.id);
+      await refreshUsers();
+      showNotification("success", `${user.name} has been deleted.`);
+    } catch (e) {
+      console.error("Failed to delete user:", e);
+      showNotification("error", "Failed to delete user. Please try again.");
+    }
+  };
+
   const handleUnban = async (user: User) => {
     const confirmed = await confirm({
       title: "Unban User",
@@ -170,18 +198,12 @@ export default function AdminUsersPage() {
     });
 
     if (confirmed) {
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === user.id
-            ? {
-                ...u,
-                status: "active" as const,
-                banExpiry: undefined,
-                banReason: undefined,
-              }
-            : u
-        )
-      );
+      try {
+        await unbanUser(user.id);
+        await refreshUsers();
+      } catch (error) {
+        showNotification("error", "Failed to unban user. Please try again.");
+      }
       showNotification("success", `${user.name} has been unbanned.`);
     }
   };
@@ -530,7 +552,7 @@ export default function AdminUsersPage() {
                               <Eye className="w-4 h-4" />
                             </Button>
                           </Link>
-                          <Button
+                          {/* <Button
                             size="sm"
                             variant="ghost"
                             className="h-8 w-8 p-0 hover-lift"
@@ -538,7 +560,7 @@ export default function AdminUsersPage() {
                             title="Set Custom Borrow Time"
                           >
                             <Clock className="w-4 h-4" />
-                          </Button>
+                          </Button> */}
                           {user.status === "banned" ? (
                             <Button
                               size="sm"
@@ -557,9 +579,18 @@ export default function AdminUsersPage() {
                               onClick={() => handleTemporaryBan(user)}
                               title="Temporary Ban"
                             >
-                              <Ban className="w-4 h-4" />
+                              <Clock className="w-4 h-4" color="orange" />
                             </Button>
                           )}
+                          <Button
+                           size="sm"
+                           variant="ghost"
+                           className="h-8 w-8 p-0 text-destructive hover:text-destructive hover-lift"
+                           onClick={() => handleDeleteUser(user)}
+                           title="Delete User"
+                         >
+                           <Trash2 className="w-4 h-4" />
+                         </Button>
                         </div>
                       </td>
                     </tr>

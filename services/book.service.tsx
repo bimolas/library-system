@@ -305,3 +305,17 @@ export async function getAnalyticsSummary(): Promise<any> {
   const data = await res.json();
   return data;
 }
+
+export async function getBookAvailabilityData(bookId: string): Promise<any> {
+  const res = await apiGetJson<any>(
+    `${BASE_URL || ""}/analytics/book/${bookId}/availability`
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || "Failed to fetch book availability data");
+  }
+
+  const data = await res.json();
+  return data;
+}

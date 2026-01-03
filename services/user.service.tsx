@@ -56,7 +56,8 @@ export async function getUsers() {
     throw new Error(err.message || "Failed to fetch users");
   }
 
-  const data = await res.json()
+  const data = await res.json();
+  console.log("Fetched users:", data);
   return data.map((u: any) => ({
     ...u,
     createdAt: u.createdAt ? new Date(u.createdAt) : null,
@@ -87,7 +88,6 @@ export async function createUser(user: any) {
   return data;
 }
 
-
 export async function deleteUser(userId: string) {
   const res = await apiDeleteJson(`${BASE_URL || ""}/users/${userId}`);
   if (!res.ok) {
@@ -109,8 +109,7 @@ export async function getUserAnalyticsData(userId: string) {
   return data;
 }
 
-
-export async function banUser(userId:string, body: any) {
+export async function banUser(userId: string, body: any) {
   const res = await apiPostJson(`${BASE_URL || ""}/users/${userId}/ban`, body);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
@@ -120,3 +119,15 @@ export async function banUser(userId:string, body: any) {
   const data = await res.json();
   return data;
 }
+
+export async function unbanUser(userId: string) {
+  const res = await apiPostJson(`${BASE_URL || ""}/users/${userId}/unban`, {});
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || "Failed to unban user");
+  }
+
+  const data = await res.json();
+  return data;
+}
+

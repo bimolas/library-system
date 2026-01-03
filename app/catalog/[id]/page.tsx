@@ -25,9 +25,14 @@ import Link from "next/link";
 import { useLibrary } from "@/lib/library-context";
 import { useAuth } from "@/lib/auth-context";
 import { useParams } from "next/navigation";
-import { getBookById } from "@/services/book.service";
+import { getBookAvailabilityData, getBookById } from "@/services/book.service";
 import { stat } from "fs";
-const BASE_URL =  "http://localhost:3000";
+import {
+  getBookAvailability,
+  getMyReservations,
+} from "@/services/reservations.service";
+import { getMyBorrowings } from "@/services/borrow.service";
+const BASE_URL = "http://localhost:3000";
 export default function BookDetailPage() {
   const { books, borrows } = useLibrary();
   const { user } = useAuth();
@@ -40,10 +45,13 @@ export default function BookDetailPage() {
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [showReserveModal, setShowReserveModal] = useState(false);
 
+  const [userAlreadyBorrowed, setUserAlreadyBorrowed] = useState(false);
+  const [userAlreadyReserved, setUserAlreadyReserved] = useState(false);
   const params = useParams();
   const id = params?.id;
 
   const [book, setBook] = useState<any>(books[0] || mockBooks[0]);
+  const [bookAvailability, setBookAvailability] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<{
     count: number;
@@ -60,8 +68,28 @@ export default function BookDetailPage() {
       setFetchError(null);
       try {
         const data = await getBookById(id as string);
+        const bookAvailibility = await getBookAvailabilityData(id as string);
+        if (data.availableCopies === 0) {
+          const reservationData = await getMyReservations();
+          const reserved = reservationData.some(
+            (r: any) => r.book.id === id && r.status === "ACTIVE"
+          );
+          if (reserved) {
+            setUserAlreadyReserved(true);
+          }
+        } else {
+          const borrowingData = await getMyBorrowings();
+          console.log("Borrowing data:", borrowingData);
+          const borrowed = borrowingData.some(
+            (b: any) => b.book.id === id && b.status === "ACTIVE"
+          );
+          if (borrowed) {
+            setUserAlreadyBorrowed(true);
+          }
+        }
         if (!mounted) return;
         setBook(data);
+        setBookAvailability(bookAvailibility);
       } catch (e: any) {
         if (e.name === "AbortError") return;
         console.error("Failed to load book:", e);
@@ -81,13 +109,6 @@ export default function BookDetailPage() {
     medium: "bg-amber-500/10 text-amber-600 border-amber-500/30",
     high: "bg-destructive/10 text-destructive border-destructive/30",
   };
-
-  const userAlreadyBorrowed = borrows.some(
-    (b) =>
-      b.userId === currentUser.id &&
-      b.bookId === book.id &&
-      b.status === "active"
-  );
 
   const borrowedCopies = book.totalCopies - book.availableCopies;
   const remainingBooks = book.availableCopies;
@@ -126,48 +147,64 @@ export default function BookDetailPage() {
                   </div>
                 )}
               </div>
+              {loading && (
+                <p className="text-sm text-muted-foreground p-5 justify-center text-center">Loading...</p>
+              )}
+              {fetchError && (
+                <p className="text-sm text-destructive p-5 justify-center text-center">Error: {fetchError}</p>
+              )}
+              {
+                  !loading && !fetchError && ( <div className="space-y-3 mb-6">
+                  {book?.availableCopies > 0 && !userAlreadyBorrowed ? (
+                    <Button
+                      className="w-full hover:scale-[1.02] transition-transform"
+                      onClick={() => setShowBorrowModal(true)}
+                    >
+                      Borrow Now
+                    </Button>
+                  ) : userAlreadyBorrowed ? (
+                    <Button className="w-full" disabled>
+                      Already Borrowed
+                    </Button>
+                  ) : !userAlreadyReserved ? (
+                    <Button
+                      className="w-full hover:scale-[1.02] transition-transform"
+                      variant="secondary"
+                      onClick={() => setShowReserveModal(true)}
+                    >
+                      Reserve This Book
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full hover:scale-[1.02] transition-transform"
+                      variant="secondary"
+                      disabled
+                    >
+                      Already Reserved
+                    </Button>
+                  )}
 
-              <div className="space-y-3 mb-6">
-                {book?.availableCopies > 0 && !userAlreadyBorrowed ? (
-                  <Button
-                    className="w-full hover:scale-[1.02] transition-transform"
-                    onClick={() => setShowBorrowModal(true)}
-                  >
-                    Borrow Now
-                  </Button>
-                ) : userAlreadyBorrowed ? (
-                  <Button className="w-full" disabled>
-                    Already Borrowed
-                  </Button>
-                ) : (
-                  <Button
-                    className="w-full hover:scale-[1.02] transition-transform"
-                    variant="secondary"
-                    onClick={() => setShowReserveModal(true)}
-                  >
-                    Reserve This Book
-                  </Button>
-                )}
+                  {/* {book.availableCopies === 0 && !userAlreadyBorrowed && (
+                    <Button
+                      variant="outline"
+                      className="w-full bg-transparent"
+                      onClick={() => setShowReserveModal(true)}
+                    >
+                      Join Waitlist
+                    </Button>
+                  )} */}
 
-                {/* {book.availableCopies === 0 && !userAlreadyBorrowed && (
                   <Button
                     variant="outline"
-                    className="w-full bg-transparent"
-                    onClick={() => setShowReserveModal(true)}
+                    className="w-full bg-transparent hover:bg-primary/5"
+                    onClick={() => setShowCalendar(!showCalendar)}
                   >
-                    Join Waitlist
+                    <Calendar className="w-4 h-4 mr-2" />
+                    {showCalendar ? "Hide Calendar" : "View Availability"}
                   </Button>
-                )} */}
-
-                <Button
-                  variant="outline"
-                  className="w-full bg-transparent hover:bg-primary/5"
-                  onClick={() => setShowCalendar(!showCalendar)}
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {showCalendar ? "Hide Calendar" : "View Availability"}
-                </Button>
-              </div>
+                </div>)
+              }
+             
 
               <div className="space-y-4 pt-6 border-t border-border">
                 <div>
@@ -369,7 +406,7 @@ export default function BookDetailPage() {
                 <h2 className="text-lg font-semibold mb-4">
                   Availability Calendar
                 </h2>
-                <AvailabilityCalendar book={book} />
+                <AvailabilityCalendar book={bookAvailability} />
               </Card>
             )}
           </div>
