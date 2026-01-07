@@ -20,12 +20,14 @@ import {
   getMyRecommendedBooks,
   getTrendingBooks,
 } from "@/services/book.service";
+import { getLatestBorrowsByNearbyScores } from "@/services/borrow.service";
 
 export default function RecommendationsPage() {
   const [savedBooks, setSavedBooks] = useState<Set<number>>(new Set());
 
   const [recommendedBooks, setRecommendedBooks] = useState<any[]>([]);
   const [trendingBooks, setTrendingBooks] = useState<any[]>([]);
+  const [communityBooks, setCommunityBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,13 +39,16 @@ export default function RecommendationsPage() {
       try {
         const booksData = await getMyRecommendedBooks();
         const trendingBooks = await getTrendingBooks();
-
+        const communityBorrows = await getLatestBorrowsByNearbyScores();
         if (!mounted) return;
         if (booksData && booksData.length > 0) {
           setRecommendedBooks(booksData);
         }
         if (trendingBooks && trendingBooks.length > 0) {
           setTrendingBooks(trendingBooks);
+        }
+        if(communityBorrows && communityBorrows.length > 0) {
+          setCommunityBooks(communityBorrows);
         }
       } catch (e: any) {
         console.error("Failed to load dashboard data:", e);
@@ -213,14 +218,14 @@ export default function RecommendationsPage() {
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="flex gap-4 mb-4">
-                  <Link href="/catalog/1">
+                  <Link href={`/catalog/${book.id}`}>
                     <div className="w-20 h-28 bg-gradient-to-br from-primary/20 to-accent/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
                       <BookOpen className="w-8 h-8 text-primary opacity-40" />
                     </div>
                   </Link>
 
                   <div className="flex-1 min-w-0">
-                    <Link href="/catalog/1">
+                    <Link href={`/catalog/${book.id}`}>
                       <h3 className="text-lg font-semibold mb-1 group-hover:text-primary transition-smooth cursor-pointer">
                         {book.title}
                       </h3>
@@ -244,7 +249,7 @@ export default function RecommendationsPage() {
                           ))}
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {book.rating}
+                          {book.rating.toString().slice(0, 3)}
                         </span>
                       </div>
                       <Badge variant="secondary">{book.genre}</Badge>
@@ -311,7 +316,7 @@ export default function RecommendationsPage() {
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="flex gap-4 mb-4">
-                  <Link href="/catalog/1">
+                  <Link href={`/catalog/${book.id}`}>
                     <div className="w-20 h-28 bg-gradient-to-br from-accent/20 to-primary/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
                       <TrendingUp className="w-8 h-8 text-accent opacity-40" />
                     </div>
@@ -320,7 +325,7 @@ export default function RecommendationsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
-                        <Link href="/catalog/1">
+                        <Link href={`/catalog/${book.id}`}>
                           <h3 className="text-lg font-semibold group-hover:text-primary transition-smooth cursor-pointer">
                             {book.title}
                           </h3>
@@ -415,14 +420,14 @@ export default function RecommendationsPage() {
               </div>
             </Card>
 
-            {communityPicks.map((book, index) => (
+            {communityBooks.map(({book, borrow, user}, index) => (
               <Card
                 key={book.id}
                 className="p-6 border-border hover:border-primary transition-smooth group animate-fadeIn"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="flex gap-4 mb-4">
-                  <Link href="/catalog/1">
+                  <Link href={`/catalog/${book.id}`}>
                     <div className="w-20 h-28 bg-gradient-to-br from-success/20 to-primary/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
                       <Users className="w-8 h-8 text-success opacity-40" />
                     </div>
@@ -431,7 +436,7 @@ export default function RecommendationsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
-                        <Link href="/catalog/1">
+                        <Link href={`/catalog/${book.id}`}>
                           <h3 className="text-lg font-semibold group-hover:text-primary transition-smooth cursor-pointer">
                             {book.title}
                           </h3>
@@ -441,7 +446,7 @@ export default function RecommendationsPage() {
                         </p>
                       </div>
                       <Badge className="bg-accent/10 text-accent">
-                        {book.community}
+                        {book.community || "⭐ Popular Pick"} 
                       </Badge>
                     </div>
 
@@ -460,18 +465,42 @@ export default function RecommendationsPage() {
                           ))}
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {book.rating}
+                          {book.rating.toString().slice(0, 3)}
                         </span>
                       </div>
-                      <Badge variant="outline" className="bg-transparent">
-                        {book.badge}
+                      <Badge className="bg-primary/10 text-primary border-primary/30">
+                        <Zap className="w-3 h-3 mr-1" />
+                         {
+                        user.tier
+                      }
                       </Badge>
+                  
+                    
                     </div>
+                       <p className="text-xs text-muted-foreground mt-3">  {(() => {
+                          const then = new Date(borrow.borrowDate).getTime();
+                          const now = Date.now();
+                          const diffMs = Math.max(0, now - then);
+
+                          const seconds = Math.floor(diffMs / 1000);
+                          const minutes = Math.floor(seconds / 60);
+                          const hours = Math.floor(minutes / 60);
+                          const days = Math.floor(hours / 24);
+                          const months = Math.floor(days / 30);
+                          const years = Math.floor(months / 12);
+
+                          if (years > 0) return `${years} year${years > 1 ? "s" : ""} ago`;
+                          if (months > 0) return `${months} month${months > 1 ? "s" : ""} ago`;
+                          if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
+                          if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+                          if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+                          return "just now";
+                        })()}</p>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <Link href="/catalog/1" className="flex-1">
+                  <Link href={`/catalog/${book.id}`} className="flex-1">
                     <Button size="sm" className="w-full hover-lift">
                       Borrow Now
                     </Button>

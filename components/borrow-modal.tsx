@@ -9,6 +9,7 @@ import { useNotification } from "@/lib/notification-context"
 import { useLibrary } from "@/lib/library-context"
 import { useAuth } from "@/lib/auth-context"
 import { borrowBook } from "@/services/borrow.service"
+import { getUser } from "@/services/auth.service"
 
 interface BorrowModalProps {
   book: Book
@@ -24,7 +25,7 @@ export default function BorrowModal({ book, isOpen, onClose, userScore, userLeve
   const [step, setStep] = useState<"select" | "confirm" | "success">("select")
   const { showSuccess, showError } = useNotification()
   // const { borrowBook } = useLibrary()
-  const { user } = useAuth()
+  const  user  = getUser()
 
   const getMaxBorrowDays = () => {
     if (userScore >= 10000) return 35

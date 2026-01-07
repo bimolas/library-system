@@ -18,7 +18,11 @@ export function ActiveBorrows() {
   };
 
   const handleRenew = (borrowId: string) => {
-    alert(`Renewal request submitted for borrow ID: ${borrowId}`);
+    const borrow = borrows.find((b) => b.id === borrowId);
+    const bookId = borrow?.book?.id ?? borrow?.bookId;
+    if (borrowId) {
+      window.location.href = `/catalog/${bookId}`;
+    }
   };
 
   const [borrows, setBorrows] = useState<any[]>([]);

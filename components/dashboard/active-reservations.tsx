@@ -15,7 +15,14 @@ export function ActiveReservations() {
   }
 
   const handleNotify = (reservationId: string) => {
-    alert(`Notifications enabled for reservation ${reservationId}. You'll be notified when it's ready.`)
+    const reservation = reservations.find(r => r.id === reservationId);
+    const bookId = reservation?.book?.id;
+    if (bookId) {
+      window.location.href = `/catalog/${bookId}`;
+      return;
+    }
+    window.location.href = "/catalog";
+    return;
   }
 
    const [reservations, setReservations] = useState<any[]>([]);
@@ -107,8 +114,8 @@ export function ActiveReservations() {
                 className="flex-shrink-0 gap-2 bg-transparent hover-lift"
                 onClick={() => handleNotify(reservation.id)}
               >
-                <Bell className="w-3 h-3" />
-                Notify
+                {/* <Bell className="w-3 h-3" /> */}
+                View Details
               </Button>
             </div>
           )

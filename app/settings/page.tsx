@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Navigation } from "@/components/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,9 +24,12 @@ import {
   Mail,
   Save,
 } from "lucide-react";
-import ConfirmationModal, { useConfirmation } from "@/components/confirmation-modal";
+import ConfirmationModal, {
+  useConfirmation,
+} from "@/components/confirmation-modal";
 import { getUser, updateProfile, logout } from "@/services/auth.service";
 import router from "next/router";
+import { getMyanalyticsData } from "@/services/user.service";
 
 export default function SettingsPage() {
   // const { theme, setTheme } = useTheme();
@@ -42,15 +45,13 @@ export default function SettingsPage() {
   const { showSuccess, showError, showInfo } = useNotification();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [profileImage, setProfileImage] = useState(
-    getUser()?.imageUrl || "/profile-avatar.png"
-  );
-  const [name, setName] = useState(getUser()?.name || "");
-  const [email, setEmail] = useState(getUser()?.email || "");
+  const [profileImage, setProfileImage] = useState("/profile-avatar.png");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLogoutAllConfirm, setShowLogoutAllConfirm] = useState(false);
   const [profileFile, setProfileFile] = useState<File | null>(null);
-const { confirm } = useConfirmation();
+  const { confirm } = useConfirmation();
   const [notifications, setNotifications] = useState({
     bookAvailable: true,
     dueDateReminder: true,
@@ -63,10 +64,45 @@ const { confirm } = useConfirmation();
     showProfile: true,
     emailNotifications: true,
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [userDetails, setUserDetails] = useState<any>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const user = getUser();
+        if (!user) {
+          router.push("/login");
+          return;
+        }
+        setProfileImage(user.imageUrl || "/profile-avatar.png");
+        setName(user.name);
+        setEmail(user.email);
+        const userDetails = await getMyanalyticsData();
+
+        if (!mounted) return;
+        if (userDetails) {
+          setUserDetails(userDetails);
+        }
+      } catch (e: any) {
+        console.error("Failed to load dashboard data:", e);
+        if (mounted) setError(e?.message || "Failed to load dashboard data");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    console.log("Selected file:", file);
     if (file) {
       setProfileFile(file);
       const reader = new FileReader();
@@ -177,99 +213,104 @@ const { confirm } = useConfirmation();
             value="profile"
             className="mt-6 space-y-4 animate-fadeIn"
           >
-            <Card className="p-6 border-border hover-border transition-smooth">
-              <h3 className="text-lg font-semibold mb-6">Profile Settings</h3>
+            {loading && <p className="text-muted-foreground p-8 text-center justify-center">Loading...</p>}
+            {error && <p className="text-destructive p-8 text-center justify-center">{error}</p>}
 
-              {/* Profile Image */}
-              <div className="flex flex-col items-center gap-4 mb-6 pb-6 border-b border-border">
-                <div className="relative group">
-                  <img
-                    src={profileImage || "/placeholder.svg"}
-                    alt="Profile"
-                    className="w-32 h-32 rounded-full object-cover border-4 border-primary/20 group-hover:border-primary/40 transition-all duration-300"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-3 rounded-full hover-lift hover-glow transition-smooth shadow-lg"
-                  >
-                    <Camera className="w-4 h-4" />
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Click camera icon to update photo
-                </p>
-              </div>
+            {!loading && !error && (
+              <Card className="p-6 border-border hover-border transition-smooth">
+                <h3 className="text-lg font-semibold mb-6">Profile Settings</h3>
 
-              {/* Profile Form */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Full Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your name"
-                    className="hover-border transition-smooth"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Email Address
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    className="hover-border transition-smooth"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground">
-                    Current Level
-                  </Label>
-                  <Badge className="bg-primary/10 text-primary border-primary/30 capitalize px-4 py-2 text-sm">
-                    {mockCurrentUser.level} Member
-                  </Badge>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground">
-                    Member Since
-                  </Label>
-                  <p className="font-medium">
-                    {mockCurrentUser.joinedDate.toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                {/* Profile Image */}
+                <div className="flex flex-col items-center gap-4 mb-6 pb-6 border-b border-border">
+                  <div className="relative group">
+                    <img
+                      src={profileImage || "/placeholder.svg"}
+                      alt="Profile"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-primary/20 group-hover:border-primary/40 transition-all duration-300"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-3 rounded-full hover-lift hover-glow transition-smooth shadow-lg"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Click camera icon to update photo
                   </p>
                 </div>
-              </div>
 
-              <Button
-                onClick={handleSaveProfile}
-                className="w-full mt-6 gap-2 hover-lift hover-glow transition-smooth"
-              >
-                <Save className="w-4 h-4" />
-                Save Profile Changes
-              </Button>
-            </Card>
+                {/* Profile Form */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Full Name
+                    </Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter your name"
+                      className="hover-border transition-smooth"
+                    />
+                  </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email Address
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      className="hover-border transition-smooth"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">
+                      Current Level
+                    </Label>
+                    <Badge className="bg-primary/10 text-primary border-primary/30 capitalize px-4 py-2 text-sm">
+                      {userDetails?.tier?.toLowerCase()} Member
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">
+                      Member Since
+                    </Label>
+                    <p className="font-medium">
+                      {userDetails?.createdAt
+                        ? new Date(userDetails?.createdAt).toLocaleDateString(
+                            undefined,
+                            { year: "numeric", month: "long", day: "numeric" }
+                          )
+                        : "December 31, 2025"}
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSaveProfile}
+                  className="w-full mt-6 gap-2 hover-lift hover-glow transition-smooth"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Profile Changes
+                </Button>
+              </Card>
+            )}
             {/* Theme Settings */}
             <Card className="p-6 border-border hover-border transition-smooth">
               <h3 className="text-lg font-semibold mb-4">Appearance</h3>
@@ -512,45 +553,45 @@ const { confirm } = useConfirmation();
               <p className="text-sm text-muted-foreground mb-4">
                 Be careful! These actions cannot be undone.
               </p>
-             <Button
-                 onClick={async () => {
-                   const ok = await confirm({
-                     title: "Logout from all devices?",
-                     message:
-                       "You will be logged out from all your active sessions. You'll need to log in again on each device.",
-                     confirmText: "Logout All",
-                     cancelText: "Cancel",
-                     variant: "default",
-                   });
-                   if (ok) {
-                     handleLogoutAll();
-                   }
-                 }}
-                 variant="outline"
-                 className="flex-1 bg-transparent hover-lift transition-smooth"
-               >
-                 <LogOut className="w-4 h-4 mr-2" />
-                 Logout All Devices
-               </Button>
-               <Button
-                 onClick={async () => {
-                   const ok = await confirm({
-                     title: "Delete your account?",
-                     message:
-                       "This action cannot be undone. All your data, reading history, and scores will be permanently deleted.",
-                     confirmText: "Delete Account",
-                     cancelText: "Cancel",
-                     variant: "destructive",
-                   });
-                   if (ok) {
-                     handleDeleteAccount();
-                   }
-                 }}
-                 variant="destructive"
-                 className="flex-1 hover-lift transition-smooth"
-               >
-                 Delete Account
-               </Button>
+              <Button
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Logout from all devices?",
+                    message:
+                      "You will be logged out from all your active sessions. You'll need to log in again on each device.",
+                    confirmText: "Logout All",
+                    cancelText: "Cancel",
+                    variant: "default",
+                  });
+                  if (ok) {
+                    handleLogoutAll();
+                  }
+                }}
+                variant="outline"
+                className="flex-1 bg-transparent hover-lift transition-smooth"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout All Devices
+              </Button>
+              <Button
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Delete your account?",
+                    message:
+                      "This action cannot be undone. All your data, reading history, and scores will be permanently deleted.",
+                    confirmText: "Delete Account",
+                    cancelText: "Cancel",
+                    variant: "destructive",
+                  });
+                  if (ok) {
+                    handleDeleteAccount();
+                  }
+                }}
+                variant="destructive"
+                className="flex-1 hover-lift transition-smooth"
+              >
+                Delete Account
+              </Button>
             </Card>
           </TabsContent>
         </Tabs>

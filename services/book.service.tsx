@@ -16,6 +16,7 @@ export async function fetchBooks(search: string = ""): Promise<Book[]> {
 
   const data = (await res.json()).map((item: any) => {
     return {
+      ...item,
       id: item.id,
       title: item.title,
       author: item.author,
@@ -256,7 +257,6 @@ export async function updateBook(
   imageFile?: File
 ): Promise<any> {
   let res; 
-
   if (imageFile) {
     const form = new FormData();
     // append fields

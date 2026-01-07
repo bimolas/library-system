@@ -172,32 +172,36 @@ export default function AdminBooksPage() {
   // Calculate inventory recommendations
   const inventoryAnalysis = books.map((book) => {
     const borrowRate = book.monthlyBorrows / book.totalCopies;
-    let recommendation: "increase" | "maintain" | "decrease" | "remove" =
-      "maintain";
+    // let recommendation: "increase" | "maintain" | "decrease" | "remove" =
+    //   "maintain";
     let reason = "";
-
-    if (borrowRate > 5 && book.availableCopies === 0) {
-      recommendation = "increase";
+    if(book.highDemand){
       reason = "High demand, no availability";
-    } else if (borrowRate > 3) {
-      recommendation = "increase";
-      reason = "High borrow frequency";
-    } else if (borrowRate < 0.5 && book.totalCopies > 3) {
-      recommendation = "decrease";
+    } else {
       reason = "Low demand, excess copies";
-    } else if (borrowRate < 0.2 && book.borrowCount < 5) {
-      recommendation = "remove";
-      reason = "Very low interest";
     }
+    // if (borrowRate > 5 && book.availableCopies === 0) {
+    //   recommendation = "increase";
+    //   reason = "High demand, no availability";
+    // } else if (borrowRate > 3) {
+    //   recommendation = "increase";
+    //   reason = "High borrow frequency";
+    // } else if (borrowRate < 0.5 && book.totalCopies > 3) {
+    //   recommendation = "decrease";
+    //   reason = "Low demand, excess copies";
+    // } else if (borrowRate < 0.2 && book.borrowCount < 5) {
+    //   recommendation = "remove";
+    //   reason = "Very low interest";
+    // }
 
-    return { ...book, borrowRate, recommendation, reason };
+    return { ...book, borrowRate, reason };
   });
 
   const needsIncrease = inventoryAnalysis.filter(
-    (b) => b.recommendation === "increase"
+    (b) => b.highDemand === true
   );
   const needsDecrease = inventoryAnalysis.filter(
-    (b) => b.recommendation === "decrease" || b.recommendation === "remove"
+    (b) => b.highDemand === false 
   );
 
   const popularityData = books

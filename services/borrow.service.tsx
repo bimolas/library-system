@@ -43,8 +43,6 @@ export async function getUserBorrowings(userId:string, filter?: BorrowFilter, li
   return data;
 }
 
-
-
 export async function borrowBook(bookId: string, durationDays: number) {
   const response = await apiPostJson(`${BASE_URL || ""}/borrowing`, { bookId, durationDays });
 
@@ -70,5 +68,18 @@ export async function returnBook(borrowId: string) {
   }
 
   const data = await response.json();
+  return data;
+}
+
+
+export async function getLatestBorrowsByNearbyScores(limit: number=10, tolerance: number=100) {
+  const res = await apiGetJson(`${BASE_URL || ""}/borrowing/nearby-latest?limit=${limit}&tolerance=${tolerance}`);
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || "Failed to fetch borrowings");
+  }
+
+  const data = await res.json();
   return data;
 }

@@ -121,7 +121,7 @@ export function RecommendedBooks() {
                   ))}
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {book.rating}
+                  {book.rating.toString().slice(0, 3)} 
                 </span>
               </div>
 

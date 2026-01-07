@@ -54,7 +54,7 @@ export function Navigation() {
     { href: "/catalog", icon: Search, label: "Catalog" },
     { href: "/score", icon: Award, label: "Score & Level" },
     { href: "/active", icon: Clock, label: "My Activity" },
-    { href: "/returns", icon: RotateCcw, label: "Returns" },
+    // { href: "/returns", icon: RotateCcw, label: "Returns" },
     { href: "/recommendations", icon: BookMarked, label: "Recommendations" },
     { href: "/settings", icon: Settings, label: "Settings" },
   ];
