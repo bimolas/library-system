@@ -22,14 +22,29 @@ import {
 import { AlertCircle, TrendingUp, Users, BookOpen, Clock } from "lucide-react";
 import { useLibrary } from "@/lib/library-context";
 import { useEffect, useState } from "react";
-import { getAnalyticsSummary, getTrendingBooks } from "@/services/book.service";
+import {
+  fetchBooks,
+  getAnalyticsSummary,
+  getTrendingBooks,
+} from "@/services/book.service";
+import {
+  getBorrowingStatsMonthlySummary,
+  getMyReadingAnalytics,
+  getMyReadingAnalyticsSummary,
+  getUserAnalyticsData,
+  getUsers,
+} from "@/services/user.service";
 
 export default function AdminPage() {
   const { books, borrows, reservations } = useLibrary();
   const [borrowedBooks, setBorrowedBooks] = useState<any[]>([]);
-
+  const [allBooks, setAllBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [genreData, setGenreData] = useState<any[]>([]);
+  const [borrowStats, setBorrowStats] = useState<any[]>([]);
+  const [usersStatusData, setUsersStatusData] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [statsData, setStatsData] = useState<any>([
     {
       icon: BookOpen,
@@ -59,17 +74,84 @@ export default function AdminPage() {
       setError(null);
       try {
         const books = await getTrendingBooks();
+        const allBooks = await fetchBooks();
         const stats = await getAnalyticsSummary();
-
+        const borrowingStats = await getBorrowingStatsMonthlySummary();
+        const users = await getUsers();
         if (!mounted) return;
         if (books) setBorrowedBooks(books);
         if (stats) {
           const updatedStats = [...statsData];
           updatedStats[0].value = stats.totalActiveBorrows.toString();
           updatedStats[1].value = stats.totalUsers.toString();
-          updatedStats[2].value = `${ Math.round(stats.avgBorrowDays) } days`;
+          updatedStats[2].value = `${Math.round(stats.avgBorrowDays)} days`;
           updatedStats[3].value = stats.totalActiveReservations.toString();
           setStatsData(updatedStats);
+        }
+        const genres = await getMyReadingAnalyticsSummary();
+        if (mounted && Array.isArray(genres)) {
+          setGenreData(
+            genres.map((g: any, index: number) => ({
+              ...g,
+              name: g.genre,
+              value: g.count,
+              color: g.color || `hsl(${(index * 137.5) % 360}, 70%, 50%)`,
+            }))
+          );
+        }
+        if (mounted && Array.isArray(borrowingStats)) {
+          setBorrowStats(borrowingStats);
+        }
+        if (mounted) setAllBooks(allBooks.books);
+        console.log(
+          "Fetched users for admin dashboard:",
+          users.filter
+        );
+        if (mounted) {
+          const userStatusData = [
+            {
+              level: "Bronze",
+              count: users.filter(
+                (u: any) => u?.tier?.toLowerCase() === "bronze"
+              ).length,
+              activeUsers: users.filter(
+                (u: any) =>
+                  u?.tier?.toLowerCase() === "bronze" && u?.status?.toLowerCase() === "active"
+              ).length,
+            },
+            {
+              level: "Silver",
+              count: users.filter(
+                (u: any) => u?.tier?.toLowerCase() === "silver"
+              ).length || 2,
+              activeUsers: users.filter(
+                (u: any) =>
+                  u?.tier?.toLowerCase() === "silver" && u?.status?.toLowerCase() === "active"
+              ).length || 1,
+            },
+            {
+              level: "Gold",
+              count: users.filter((u: any) => u?.tier?.toLowerCase() === "gold")
+                .length || 1,
+              activeUsers: users.filter(
+                (u: any) =>
+                  u?.tier?.toLowerCase() === "gold" && u?.status?.toLowerCase() === "active"
+              ).length || 1,
+            },
+            {
+              level: "Platinum",
+              count: users.filter(
+                (u: any) => u?.tier?.toLowerCase() === "platinum"
+              ).length,
+              activeUsers: users.filter(
+                (u: any) =>
+                  u?.tier?.toLowerCase() === "platinum" &&
+                  u?.status?.toLowerCase() === "active"
+              ).length,
+            },
+          ];
+          setUsersStatusData(userStatusData);
+          setUsers(users);
         }
       } catch (e: any) {
         console.error("Failed to load dashboard data:", e);
@@ -85,14 +167,67 @@ export default function AdminPage() {
     };
   }, []);
 
-  const borrowData = [
-    { month: "Jan", borrows: 120, returns: 115, late: 5 },
-    { month: "Feb", borrows: 145, returns: 140, late: 5 },
-    { month: "Mar", borrows: 168, returns: 160, late: 8 },
-    { month: "Apr", borrows: 192, returns: 185, late: 7 },
-    { month: "May", borrows: 210, returns: 205, late: 5 },
-    { month: "Jun", borrows: 235, returns: 225, late: 10 },
-  ];
+  function getBookStats(params: string, allBooks: any[]) {
+    if (params === "lowStock") {
+      const count = allBooks.filter((b) => b.availableCopies <= 2).length;
+      const pct = allBooks.length
+        ? Math.round((count / allBooks.length) * 100)
+        : 0;
+      return `Low Stock ${count} (${pct}%)`;
+    } else if (params === "overstocked") {
+      const count = allBooks.filter((b) => b.availableCopies >= 10).length;
+      const pct = allBooks.length
+        ? Math.round((count / allBooks.length) * 100)
+        : 0;
+      return `Overstocked ${count} (${pct}%)`;
+    } else if (params === "moderate") {
+      const count = allBooks.filter(
+        (b) => b.availableCopies > 2 && b.availableCopies < 10
+      ).length;
+      const pct = allBooks.length
+        ? Math.round((count / allBooks.length) * 100)
+        : 0;
+      return `Moderate Stock ${count} (${pct}%)`;
+    }
+    return " N/A ";
+  }
+
+  function getBookStatsValue(params: string, allBooks: any[]) {
+    if (params === "lowStock") {
+      const count = allBooks.filter((b) => b.availableCopies <= 2).length;
+      const pct = allBooks.length
+        ? Math.round((count / allBooks.length) * 100)
+        : 0;
+      return `${pct}%`;
+    } else if (params === "overstocked") {
+      const count = allBooks.filter((b) => b.availableCopies >= 10).length;
+      const pct = allBooks.length
+        ? Math.round((count / allBooks.length) * 100)
+        : 0;
+      return `${pct}%`;
+    } else if (params === "moderate") {
+      const count = allBooks.filter(
+        (b) => b.availableCopies > 2 && b.availableCopies < 10
+      ).length;
+      const pct = allBooks.length
+        ? Math.round((count / allBooks.length) * 100)
+        : 0;
+      return `${pct}%`;
+    }
+    return " N/A ";
+  }
+
+  const borrowData =
+    borrowStats.length > 0
+      ? borrowStats
+      : [
+          { month: "Jan", borrows: 120, returns: 115, late: 5 },
+          { month: "Feb", borrows: 145, returns: 140, late: 5 },
+          { month: "Mar", borrows: 168, returns: 160, late: 8 },
+          { month: "Apr", borrows: 192, returns: 185, late: 7 },
+          { month: "May", borrows: 210, returns: 205, late: 5 },
+          { month: "Jun", borrows: 235, returns: 225, late: 10 },
+        ];
 
   const COLORS = {
     primary: "#4f46e5",
@@ -103,13 +238,16 @@ export default function AdminPage() {
     pink: "#ec4899",
   };
 
-  const bookPopularity = [
-    { name: "Fiction", value: 35, color: COLORS.primary },
-    { name: "Non-Fiction", value: 25, color: COLORS.purple },
-    { name: "Science", value: 20, color: COLORS.pink },
-    { name: "History", value: 15, color: COLORS.accent },
-    { name: "Biography", value: 5, color: COLORS.success },
-  ];
+  const bookPopularity =
+    genreData.length > 0
+      ? genreData
+      : [
+          { name: "Fiction", value: 35, color: COLORS.primary },
+          { name: "Non-Fiction", value: 25, color: COLORS.purple },
+          { name: "Science", value: 20, color: COLORS.pink },
+          { name: "History", value: 15, color: COLORS.accent },
+          { name: "Biography", value: 5, color: COLORS.success },
+        ];
 
   const topBooks = books.slice(0, 4).map((book) => ({
     id: book.id,
@@ -120,12 +258,15 @@ export default function AdminPage() {
     demand: book.demandPressure,
   }));
 
-  const userStats = [
-    { level: "Bronze", count: 450, activeUsers: 180 },
-    { level: "Silver", count: 320, activeUsers: 245 },
-    { level: "Gold", count: 180, activeUsers: 165 },
-    { level: "Platinum", count: 45, activeUsers: 42 },
-  ];
+  const userStats: any[] =
+    usersStatusData.length > 0
+      ? usersStatusData
+      : [
+          { level: "Bronze", count: 450, activeUsers: 180 },
+          { level: "Silver", count: 320, activeUsers: 245 },
+          { level: "Gold", count: 180, activeUsers: 165 },
+          { level: "Platinum", count: 45, activeUsers: 42 },
+        ];
 
   const alerts = [
     {
@@ -185,7 +326,7 @@ export default function AdminPage() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {statsData.map((stat:any, index:any) => {
+          {statsData.map((stat: any, index: any) => {
             const Icon = stat.icon;
             return (
               <Card
@@ -433,42 +574,83 @@ export default function AdminPage() {
                   <div>
                     <div className="flex justify-between mb-2">
                       <span className="text-sm font-semibold">
-                        Well Stocked (&gt;70%)
+                        {getBookStats("overstocked", allBooks)}
                       </span>
                       <span className="text-sm text-success font-bold">
-                        89 books
+                        {
+                          allBooks.filter((book) => book.availableCopies >= 10)
+                            .length
+                        }{" "}
+                        books
                       </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-                      <div className="bg-gradient-to-r from-success to-emerald-400 h-full w-[85%] rounded-full transition-all" />
+                      <div
+                        className={`bg-gradient-to-r from-success to-emerald-400 h-full w-[${getBookStatsValue(
+                          "overstocked",
+                          allBooks
+                        )}] rounded-full transition-all`}
+                      />
                     </div>
                   </div>
 
                   <div>
                     <div className="flex justify-between mb-2">
                       <span className="text-sm font-semibold">
-                        Moderate (30-70%)
+                        {/* {(() => {
+                          const count = allBooks.filter(
+                            (book) =>
+                              book.availableCopies > 2 &&
+                              book.availableCopies < 10
+                          ).length;
+                          const pct = allBooks.length
+                            ? Math.round((count / allBooks.length) * 100)
+                            : 0;
+                          return `Moderate ${count} (${pct}%)`;
+                        })()} */}
+                        {getBookStats("moderate", allBooks)}
                       </span>
                       <span className="text-sm text-amber-500 font-bold">
-                        34 books
+                        {
+                          allBooks.filter(
+                            (book) =>
+                              book.availableCopies > 2 &&
+                              book.availableCopies < 10
+                          ).length
+                        }{" "}
+                        books
                       </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-                      <div className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full w-[35%] rounded-full transition-all" />
+                      <div
+                        className={`bg-gradient-to-r from-amber-500 to-yellow-400 h-full w-[${getBookStatsValue(
+                          "moderate",
+                          allBooks
+                        )}] rounded-full transition-all`}
+                      />
                     </div>
                   </div>
 
                   <div>
                     <div className="flex justify-between mb-2">
                       <span className="text-sm font-semibold">
-                        Low Stock (&lt;30%)
+                        {getBookStats("lowStock", allBooks)}
                       </span>
                       <span className="text-sm text-destructive font-bold">
-                        6 books
+                        {
+                          allBooks.filter((book) => book.availableCopies <= 2)
+                            .length
+                        }{" "}
+                        books
                       </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-                      <div className="bg-gradient-to-r from-destructive to-red-400 h-full w-[8%] rounded-full transition-all" />
+                      <div
+                        className={`bg-gradient-to-r from-destructive to-red-400 h-full w-[${getBookStatsValue(
+                          "lowStock",
+                          allBooks
+                        )}] rounded-full transition-all`}
+                      />
                     </div>
                   </div>
 
@@ -478,14 +660,14 @@ export default function AdminPage() {
                         <p className="text-sm text-muted-foreground">
                           Total Titles
                         </p>
-                        <p className="text-2xl font-bold">{books.length}</p>
+                        <p className="text-2xl font-bold">{allBooks.length}</p>
                       </div>
                       <div className="p-3 bg-muted/30 rounded-lg">
                         <p className="text-sm text-muted-foreground">
                           Total Copies
                         </p>
                         <p className="text-2xl font-bold">
-                          {books.reduce((acc, b) => acc + b.totalCopies, 0)}
+                          {allBooks.reduce((acc, b) => acc + b.totalCopies, 0)}
                         </p>
                       </div>
                     </div>
@@ -550,7 +732,16 @@ export default function AdminPage() {
                   <p className="text-sm text-muted-foreground mb-2">
                     Average Score
                   </p>
-                  <p className="text-4xl font-bold text-primary">7,842</p>
+                  <p className="text-4xl font-bold text-primary">
+                    {(() => {
+                      const total = users.reduce((s: number, u: any) => s + (u?.score || 0), 0);
+                      const count = users.reduce(
+                        (c: number, u: any) => c + (u && u.score !== undefined && !isNaN(Number(u.score)) ? 1 : 0),
+                        0
+                      );
+                      return count ? (total / count).toFixed(1) : "—";
+                    })()}
+                  </p>
                   <p className="text-xs text-success mt-2 flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" /> 2.3% from last month
                   </p>

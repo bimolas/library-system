@@ -33,6 +33,32 @@ export async function getMyReadingAnalytics() {
   return data;
 }
 
+export async function getMyReadingAnalyticsSummary() {
+  const res = await apiGetJson(
+    `${BASE_URL || ""}/analytics/user/genre-distribution`
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || "Failed to fetch user reading summary");
+  }
+
+  const data = await res.json();
+  return data;
+}
+
+export async function getBorrowingStatsMonthlySummary(months: number = 6) {
+  const res = await apiGetJson(
+    `${BASE_URL || ""}/borrowing/stats/monthly/last?months=${months}`
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || "Failed to fetch  ");
+  }
+
+  const data = await res.json();
+  return data;
+}
+
 export async function getUserReadingAnalytics(userId: string) {
   if (!userId) {
     throw new Error("User ID is required");

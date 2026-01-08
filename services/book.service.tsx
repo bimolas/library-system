@@ -4,17 +4,17 @@ import { apiDeleteJson, apiGetJson, apiPostJson } from "./api-client";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000/api";
 
-export async function fetchBooks(search: string = ""): Promise<Book[]> {
+export async function fetchBooks(search: string = "", page: number = 1, limit: number = 100): Promise<any> {
   const res = await apiGetJson<any>(
-    `${BASE_URL || ""}/books/search?q=${search}`
+    `${BASE_URL || ""}/books/search?q=${search}&skip=${page}&limit=${limit}`
   );
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(err.message || "Failed to fetch books");
   }
-
-  const data = (await res.json()).map((item: any) => {
+  const data = await res.json();
+  const items = data.items.map((item: any) => {
     return {
       ...item,
       id: item.id,
@@ -39,7 +39,14 @@ export async function fetchBooks(search: string = ""): Promise<Book[]> {
       borrowCount: item.borrowCount,
     };
   }) as Book[];
-  return data;
+  return {
+    books: items,
+    total: data.total,
+    limit: data.limit,
+    skip: data.skip,
+    totalPages: data.totalPages,
+    currentPage: data.currentPage,
+  };
 }
 
 export async function getBookById(bookId: string): Promise<Book> {
@@ -256,7 +263,7 @@ export async function updateBook(
   bookData: any,
   imageFile?: File
 ): Promise<any> {
-  let res; 
+  let res;
   if (imageFile) {
     const form = new FormData();
     // append fields
@@ -292,7 +299,6 @@ export async function updateBook(
 
   return res.json();
 }
-
 
 export async function getAnalyticsSummary(): Promise<any> {
   const res = await apiGetJson<any>(`${BASE_URL || ""}/analytics/summary`);

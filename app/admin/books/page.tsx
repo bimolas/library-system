@@ -59,16 +59,40 @@ export default function AdminBooksPage() {
   const [editingBook, setEditingBook] = useState<any | null>(null);
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
   const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(12);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalItems, setTotalItems] = useState<number>(0);
+  const [allBooks, setAllBooks] = useState<any[]>([]);
+
+  const makePageList = (pageCount: number, current: number) => {
+    if (pageCount <= 7) return Array.from({ length: pageCount }, (_, i) => i + 1);
+    const pages = new Set<number>();
+    pages.add(1);
+    pages.add(pageCount);
+    pages.add(current);
+    pages.add(Math.max(2, current - 1));
+    pages.add(Math.min(pageCount - 1, current + 1));
+    return Array.from(pages).sort((a, b) => a - b);
+  };
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const booksData = await fetchBooks();
-
-        if (!mounted) return;
-        if (booksData) setBooks(booksData);
+          const booksData = await fetchBooks(searchQuery, currentPage, pageSize);
+          const allBooksdata = await fetchBooks(searchQuery, 1, 1000);
+          if (!mounted) return;
+        if (booksData && Array.isArray(booksData.books)) {
+          setBooks(booksData.books);
+          setPageSize(booksData.limit ?? pageSize);
+          setTotalPages(booksData.totalPages ?? Math.max(1, Math.ceil((booksData.total ?? booksData.books.length) / (booksData.limit ?? pageSize))));
+          setTotalItems(booksData.total ?? booksData.books.length);
+        }
+        if (allBooksdata && Array.isArray(allBooksdata.books)) {
+          setAllBooks(allBooksdata.books);
+        }
       } catch (e: any) {
         console.error("Failed to load books data:", e);
         if (mounted) setError(e?.message || "Failed to load books data");
@@ -81,7 +105,8 @@ export default function AdminBooksPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [searchQuery, currentPage, pageSize]);
+
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null;
@@ -170,12 +195,12 @@ export default function AdminBooksPage() {
   );
 
   // Calculate inventory recommendations
-  const inventoryAnalysis = books.map((book) => {
+  const inventoryAnalysis = allBooks.map((book) => {
     const borrowRate = book.monthlyBorrows / book.totalCopies;
     // let recommendation: "increase" | "maintain" | "decrease" | "remove" =
     //   "maintain";
     let reason = "";
-    if(book.highDemand){
+    if (book.highDemand) {
       reason = "High demand, no availability";
     } else {
       reason = "Low demand, excess copies";
@@ -197,12 +222,8 @@ export default function AdminBooksPage() {
     return { ...book, borrowRate, reason };
   });
 
-  const needsIncrease = inventoryAnalysis.filter(
-    (b) => b.highDemand === true
-  );
-  const needsDecrease = inventoryAnalysis.filter(
-    (b) => b.highDemand === false 
-  );
+  const needsIncrease = inventoryAnalysis.filter((b) => b.highDemand === true);
+  const needsDecrease = inventoryAnalysis.filter((b) => b.highDemand === false);
 
   const popularityData = books
     .sort((a, b) => b.monthlyBorrows - a.monthlyBorrows)
@@ -290,8 +311,12 @@ export default function AdminBooksPage() {
     try {
       setLoading(true);
       setError(null);
-      const updatedBooks = await fetchBooks();
-      setBooks(updatedBooks);
+     const updatedBooks = await fetchBooks(searchQuery, currentPage, pageSize);
+      if (updatedBooks && Array.isArray(updatedBooks.books)) {
+        setBooks(updatedBooks.books);
+        setTotalPages(updatedBooks.totalPages ?? totalPages);
+        setTotalItems(updatedBooks.total ?? totalItems);
+      }
     } catch (error) {
       showNotification("error", "Failed to refresh books. Please try again.");
     } finally {
@@ -444,10 +469,10 @@ export default function AdminBooksPage() {
                             <td className="py-4 px-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-14 bg-gradient-to-br from-primary/20 to-accent/20 rounded overflow-hidden flex-shrink-0 border border-border">
-                                  {book.coverImage?.startsWith(BASE_URL) ? (
+                                  {book.coverImage?.startsWith(BASE_URL) ||
+                                  book.coverImage.startsWith("https://cover") ? (
                                     <img
                                       src={book.coverImage}
-                                      alt={`${book.title} cover`}
                                       className="w-full h-full object-cover block"
                                       loading="lazy"
                                     />
@@ -565,6 +590,68 @@ export default function AdminBooksPage() {
                 </div>
               </div>
             </Card>
+              <div className="mt-4 flex items-center justify-between gap-3">
+              <div className="text-sm text-muted-foreground">
+                {totalItems === 0
+                  ? "No results"
+                  : `Showing ${(currentPage - 1) * pageSize + 1} – ${Math.min(
+                      currentPage * pageSize,
+                      totalItems
+                    )} of ${totalItems}`}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  «
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ‹
+                </Button>
+
+                {makePageList(totalPages, currentPage).map((p, idx, arr) => (
+                  <span key={p}>
+                    {idx > 0 && p - arr[idx - 1] > 1 && (
+                      <span className="px-2">…</span>
+                    )}
+                    <Button
+                      size="sm"
+                      variant={p === currentPage ? "default" : "outline"}
+                      onClick={() => setCurrentPage(p)}
+                      className={p === currentPage ? "" : "bg-transparent"}
+                    >
+                      {p}
+                    </Button>
+                  </span>
+                ))}
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  ›
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  »
+                </Button>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="inventory" className="space-y-6">
@@ -618,7 +705,7 @@ export default function AdminBooksPage() {
                     <BookOpen className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{books.length}</p>
+                    <p className="text-2xl font-bold">{allBooks.length}</p>
                     <p className="text-sm text-muted-foreground">
                       Total Titles
                     </p>
@@ -632,7 +719,7 @@ export default function AdminBooksPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
-                      {books.reduce((sum, b) => sum + b.totalCopies, 0)}
+                      {allBooks.reduce((sum, b) => sum + b.totalCopies, 0)}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Total Copies
@@ -647,7 +734,7 @@ export default function AdminBooksPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
-                      {books.reduce((sum, b) => sum + b.availableCopies, 0)}
+                      {allBooks.reduce((sum, b) => sum + b.availableCopies, 0)}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Available Now
@@ -662,7 +749,7 @@ export default function AdminBooksPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
-                      {books.reduce((sum, b) => sum + b.borrowCount, 0)}
+                      {allBooks.reduce((sum, b) => sum + b.borrowCount, 0)}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Monthly Borrows
@@ -681,7 +768,7 @@ export default function AdminBooksPage() {
                 Books Needing More Copies ({needsIncrease.length})
               </h3>
               {needsIncrease.length > 0 ? (
-                <div className="space-y-3">
+                   <div className="max-h-[48vh] overflow-y-auto pr-2 space-y-3">
                   {needsIncrease.map((book, index) => (
                     <div
                       key={book.id}
@@ -738,7 +825,7 @@ export default function AdminBooksPage() {
                 Consider Reducing Stock ({needsDecrease.length})
               </h3>
               {needsDecrease.length > 0 ? (
-                <div className="space-y-3">
+                   <div className="max-h-[48vh] overflow-y-auto pr-2 space-y-3">
                   {needsDecrease.map((book, index) => (
                     <div
                       key={book.id}
@@ -774,10 +861,10 @@ export default function AdminBooksPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="bg-transparent hover-lift"
+                            className="bg-transparent text-amber-600 hover-lift"
                             onClick={() => handleUpdateCopies(book.id, -1)}
                           >
-                            Remove 1
+                            Remove 1 Copy
                           </Button>
                           {book.recommendation === "remove" && (
                             <Button
@@ -1285,6 +1372,7 @@ export default function AdminBooksPage() {
               </div>
             </div>
           </Card>
+          
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Navigation } from "@/components/navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,14 +32,24 @@ export default function CatalogPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [books, setBooks] = useState<Book[]>([]); // start with mock data
   // const [books, setBooks] = useState<Book[]>(mockBooks); // start with mock data
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const allGenres = Array.from(new Set(books.flatMap((b) => b.genre))).sort();
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const demandeLevelValues: any = {
     low: 1,
     medium: 5,
     high: 10,
+  };
+   const pendingScrollRef = useRef<number | null>(null);
+
+  const handlePageChange = (p: number) => {
+    // capture current scroll Y before changing page
+    if (typeof window !== "undefined") pendingScrollRef.current = window.scrollY;
+    setCurrentPage(p);
   };
   const filteredBooks = useMemo(() => {
     let results = [...books];
@@ -100,9 +110,34 @@ export default function CatalogPage() {
     const load = async () => {
       setLoading(true);
       setError(null);
-      try {
-        const data = await fetchBooks(filters.search);
-        if (mounted && Array.isArray(data)) setBooks(data as any);
+      try { 
+        console.log("Fetching books with filters: page:", currentPage);
+        const data = (await fetchBooks(
+          filters.search,
+          currentPage,
+          pageSize
+        )) as any;
+        const items = data.books;
+        if (mounted && Array.isArray(items)) {
+        //  if (pendingScrollRef.current !== null && typeof window !== "undefined") {
+           const y = pendingScrollRef.current;
+           pendingScrollRef.current = null;
+           // restore immediately after render
+           window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
+        //  }
+          setBooks(items as any);
+          setPageSize(data.limit ?? pageSize);
+          setTotalPages(
+            data.totalPages ??
+              Math.max(
+                1,
+                Math.ceil(
+                  (data.total ?? items.length) / (data.limit ?? pageSize)
+                )
+              )
+          );
+          setTotalItems(data.total ?? items.length);
+        }
       } catch (err: any) {
         console.error("Failed to load books:", err);
         if (mounted)
@@ -115,7 +150,19 @@ export default function CatalogPage() {
     return () => {
       mounted = false;
     };
-  }, [filters.search]);
+  }, [filters.search, currentPage]);
+
+  const makePageList = (pageCount: number, current: number) => {
+    if (pageCount <= 7)
+      return Array.from({ length: pageCount }, (_, i) => i + 1);
+    const pages = new Set<number>();
+    pages.add(1);
+    pages.add(pageCount);
+    pages.add(current);
+    pages.add(Math.max(2, current - 1));
+    pages.add(Math.min(pageCount - 1, current + 1));
+    return Array.from(pages).sort((a, b) => a - b);
+  };
 
   const toggleGenre = (genre: string) => {
     setFilters((prev) => ({
@@ -325,6 +372,82 @@ export default function CatalogPage() {
             </div>
           )}
         </div>
+        {/* Pagination */}
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            {totalItems === 0 ? (
+              "No results"
+            ) : (
+              <>
+                Showing{" "}
+                <span className="font-medium">
+                  {(currentPage - 1) * pageSize + 1}
+                </span>{" "}
+                –{" "}
+                <span className="font-medium">
+                  {Math.min(currentPage * pageSize, totalItems)}
+                </span>{" "}
+                of <span className="font-medium">{totalItems}</span>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+              >
+                «
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                ‹
+              </Button>
+
+              {makePageList(totalPages, currentPage).map((p, idx, arr) => (
+                <span key={p}>
+                  {idx > 0 && p - arr[idx - 1] > 1 && (
+                    <span className="px-2">…</span>
+                  )}
+                  <Button
+                    size="sm"
+                    variant={p === currentPage ? "default" : "outline"}
+                    onClick={() => setCurrentPage(p)}
+                    className={p === currentPage ? "" : "bg-transparent"}
+                  >
+                    {p}
+                  </Button>
+                </span>
+              ))}
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                ›
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                »
+              </Button>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
@@ -335,8 +458,8 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
     book.availableCopies > 0 ? "available" : "reserved";
   const availabilityColor =
     book.availableCopies > 0
-      ? "bg-success/10 text-success border-success/30"
-      : "bg-amber-500/10 text-amber-600 border-amber-500/30";
+      ? "bg-success/50 text-white border-success/30"
+      : "bg-amber-500/50 text-white border-amber-500/30";
 
   return (
     <Card
@@ -345,10 +468,10 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
     >
       <Link href={`/catalog/${book.id}`} className="block">
         <div className="relative h-56 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
-          {book.coverImage?.startsWith(BASE_URL) ? (
+          {book?.coverImage?.startsWith(BASE_URL) ||
+          book?.coverImage?.startsWith("https://covers") ? (
             <img
               src={book.coverImage}
-              alt={`${book.title} cover`}
               className="w-full h-full object-cover block w-16 h-16 text-primary opacity-60 group-hover:scale-110 transition-smooth"
               loading="lazy"
             />
@@ -357,13 +480,15 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
               <BookOpen className="w-16 h-16 text-primary opacity-40 group-hover:scale-110 transition-smooth" />
             </div>
           )}
-          <Badge className={`absolute top-2 right-2 ${availabilityColor}`}>
+          <Badge
+            className={`absolute top-2 right-2 ${availabilityColor}  opacity-100`}
+          >
             {availabilityStatus === "available"
               ? `${book.availableCopies} available`
               : "Reserved"}
           </Badge>
-          {book.borrowCount > 10 && (
-            <Badge className="absolute top-2 left-2 bg-destructive/10 text-destructive border-destructive/30">
+          {(book.borrowCount > 10 || book.availableCopies === 0) && (
+            <Badge className="absolute top-2 left-2 bg-destructive/50 text-white border-destructive/30">
               <TrendingUp className="w-3 h-3 mr-1" />
               High Demand
             </Badge>
