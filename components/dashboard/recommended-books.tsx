@@ -88,21 +88,21 @@ export function RecommendedBooks() {
             {recommendedBooks.slice(0, 15).map((book, index) => (
               <div
                 key={book.id}
-                className="group cursor-pointer animate-fadeIn min-w-[160px] sm:min-w-[180px] md:min-w-[200px]"
+                className="pb-5 group cursor-pointer animate-fadeIn min-w-[160px] sm:min-w-[180px] md:min-w-[200px]"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <Link href={`/catalog/${book.id}`}>
-                  <div className="w-70 relative mb-4 overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 aspect-[3/4] flex items-center justify-center hover-lift">
+                  <div className="w-70 h-110 relative mb-4 overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 aspect-[3/4] flex items-center justify-center hover-lift">
                     {book?.coverImage?.startsWith(BASE_URL) ||
                     book?.coverImage?.startsWith("https://covers") ? (
                       <img
                         src={book.coverImage}
-                        className="w-full h-full object-cover block w-16 h-16 text-primary opacity-60 group-hover:scale-110 transition-smooth"
+                        className="w-full h-full object-cover block text-primary   transition-smooth"
                         loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                    <BookMarked className="w-12 h-12 text-primary opacity-40 group-hover:scale-110 transition-smooth" />
+                    <BookMarked className="w-12 h-12 text-primary opacity-40 group-hover:scale-105 transition-smooth" />
                       </div>
                     )}
                     <Badge className="absolute top-2 right-2">

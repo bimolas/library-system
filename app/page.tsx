@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { BookOpen, Zap, TrendingUp, Calendar, Users, Award } from "lucide-react"
+import { getUser } from "@/services/auth.service"
 
 export default function LandingPage() {
   const [isLoaded, setIsLoaded] = useState(false)
@@ -46,6 +47,19 @@ export default function LandingPage() {
     },
   ]
 
+  function exploreCatalog() {
+    const user  = getUser();
+    if (user) {
+      return () => {
+        window.location.href = "/catalog";
+      }
+    } else {
+      return () => {
+        window.location.href = "/login";
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       {/* Navigation */}
@@ -78,11 +92,9 @@ export default function LandingPage() {
             Discover books, track your reading score, and get priority access based on your reputation. Experience the
             next generation of library systems.
           </p>
-          <Link href="/catalog">
-            <Button size="lg" className="px-8 hover-lift">
+            <Button onClick={exploreCatalog()} size="lg" className="px-8 hover-lift">
               Explore Catalog
             </Button>
-          </Link>
         </div>
       </section>
 

@@ -12,7 +12,8 @@ type LoginResponse = {
   user?: any;
 };
 const BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3000/api";
-
+const hasLocalStorage = () =>
+  typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 export async function login(
   email: string,
   password: string,
@@ -90,8 +91,15 @@ export function setUser(user: any) {
 }
 
 export function getUser(): any | null {
-  const u = localStorage.getItem(USER_KEY);
-  return u ? JSON.parse(u) : null;
+
+  if(!hasLocalStorage()) {
+    return null;
+  }
+  const u = localStorage?.getItem(USER_KEY);
+  if(!u) {
+    return null;
+  }
+  return JSON.parse(u);
 }
 
 export function logout() {

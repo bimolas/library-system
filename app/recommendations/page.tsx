@@ -225,7 +225,7 @@ export default function RecommendationsPage() {
                       book?.coverImage?.startsWith("https://covers") ? (
                           <img
                             src={book.coverImage}
-                            className="w-full rounded h-full object-cover block w-16 h-16 text-primary opacity-60 items-center justify-center flex-shrink-0"
+                            className="w-full rounded h-full object-cover block w-16 h-16 text-primary  items-center justify-center flex-shrink-0"
                             loading="lazy"
                           />
                       ) : (
@@ -332,11 +332,11 @@ export default function RecommendationsPage() {
                       book?.coverImage?.startsWith("https://covers") ? (
                           <img
                             src={book.coverImage}
-                            className="w-full rounded h-full object-cover block w-16 h-16 text-primary opacity-60 items-center justify-center flex-shrink-0 "
+                            className="w-full rounded h-full object-cover block w-16 h-16 text-primary   items-center justify-center flex-shrink-0 "
                             loading="lazy"
                           />
                       ) : (
-                          <TrendingUp className="w-8 h-8 text-accent opacity-40" />
+                          <TrendingUp className="w-8 h-8 text-accent   " />
                       )}
                     </div>
                   </Link>
@@ -448,7 +448,7 @@ export default function RecommendationsPage() {
                 <div className="flex gap-4 mb-4">
                   <Link href={`/catalog/${book.id}`}>
                     <div className="w-20 h-28 bg-gradient-to-br from-success/20 to-primary/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
-                      <Users className="w-8 h-8 text-success opacity-40" />
+                      <Users className="w-8 h-8 text-success " />
                     </div>
                   </Link>
 

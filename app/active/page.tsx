@@ -264,7 +264,7 @@ export default function ActivePage() {
                             borrow?.book?.coverImage?.startsWith("https://covers") ? (
                               <img
                                 src={borrow.book.coverImage}
-                                className="w-full rounded h-full object-cover block w-16 h-16 text-primary opacity-60 items-center justify-center flex-shrink-0"
+                                className="w-full rounded h-full object-cover block w-16 h-16 text-primary items-center justify-center flex-shrink-0"
                                 loading="lazy"
                               />
                             ) : (
@@ -397,7 +397,7 @@ export default function ActivePage() {
                             reservation?.book?.coverImage?.startsWith("https://covers") ? (
                               <img
                                 src={reservation.book.coverImage}
-                                className="w-full rounded h-full object-cover block w-16 h-16 text-primary opacity-60 items-center justify-center flex-shrink-0"
+                                className="w-full rounded h-full object-cover block w-16 h-16 text-primary items-center justify-center flex-shrink-0"
                                 loading="lazy"
                               />
                             ) : (

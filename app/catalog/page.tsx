@@ -44,11 +44,12 @@ export default function CatalogPage() {
     medium: 5,
     high: 10,
   };
-   const pendingScrollRef = useRef<number | null>(null);
+  const pendingScrollRef = useRef<number | null>(null);
 
   const handlePageChange = (p: number) => {
     // capture current scroll Y before changing page
-    if (typeof window !== "undefined") pendingScrollRef.current = window.scrollY;
+    if (typeof window !== "undefined")
+      pendingScrollRef.current = window.scrollY;
     setCurrentPage(p);
   };
   const filteredBooks = useMemo(() => {
@@ -110,7 +111,7 @@ export default function CatalogPage() {
     const load = async () => {
       setLoading(true);
       setError(null);
-      try { 
+      try {
         console.log("Fetching books with filters: page:", currentPage);
         const data = (await fetchBooks(
           filters.search,
@@ -119,12 +120,14 @@ export default function CatalogPage() {
         )) as any;
         const items = data.books;
         if (mounted && Array.isArray(items)) {
-        //  if (pendingScrollRef.current !== null && typeof window !== "undefined") {
-           const y = pendingScrollRef.current;
-           pendingScrollRef.current = null;
-           // restore immediately after render
-           window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
-        //  }
+          //  if (pendingScrollRef.current !== null && typeof window !== "undefined") {
+          const y = pendingScrollRef.current;
+          pendingScrollRef.current = null;
+          // restore immediately after render
+          window.requestAnimationFrame(() =>
+            window.scrollTo({ top: 0, left: 0 })
+          );
+          //  }
           setBooks(items as any);
           setPageSize(data.limit ?? pageSize);
           setTotalPages(
@@ -453,6 +456,7 @@ export default function CatalogPage() {
   );
 }
 
+// ...existing code...
 function BookCard({ book, delay }: { book: Book; delay: number }) {
   const availabilityStatus =
     book.availableCopies > 0 ? "available" : "reserved";
@@ -463,30 +467,36 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
 
   return (
     <Card
-      className="overflow-hidden border-border hover:border-primary transition-smooth group cursor-pointer animate-fadeIn"
+      className="h-full flex flex-col overflow-hidden border-border hover:border-primary transition-smooth group cursor-pointer animate-fadeIn"
       style={{ animationDelay: `${delay}ms` }}
     >
       <Link href={`/catalog/${book.id}`} className="block">
-        <div className="relative h-56 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
+        <div className="relative w-full aspect-[3/4] bg-muted/5 overflow-hidden">
           {book?.coverImage?.startsWith(BASE_URL) ||
           book?.coverImage?.startsWith("https://covers") ? (
             <img
               src={book.coverImage}
-              className="w-full h-full object-cover block w-16 h-16 text-primary opacity-60 group-hover:scale-110 transition-smooth"
+              alt={`${book.title} cover`}
+              className="absolute inset-0 w-full h-full  object-cover transition-transform duration-300 group-hover:scale-105"
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <BookOpen className="w-16 h-16 text-primary opacity-40 group-hover:scale-110 transition-smooth" />
+            <div className="absolute inset-0 flex items-center justify-center text-primary/40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
+              <BookOpen className="w-16 h-16" />
             </div>
           )}
+
+          {/* subtle gradient to tie image to palette and ensure readable badges */}
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/8 via-transparent to-transparent" />
+
           <Badge
-            className={`absolute top-2 right-2 ${availabilityColor}  opacity-100`}
+            className={`absolute top-2 right-2 ${availabilityColor} opacity-100`}
           >
             {availabilityStatus === "available"
               ? `${book.availableCopies} available`
               : "Reserved"}
           </Badge>
+
           {(book.borrowCount > 10 || book.availableCopies === 0) && (
             <Badge className="absolute top-2 left-2 bg-destructive/50 text-white border-destructive/30">
               <TrendingUp className="w-3 h-3 mr-1" />
@@ -495,24 +505,22 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
           )}
         </div>
 
-        <div className="p-4">
-          <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-smooth">
-            {book.title.slice(0, 30) + (book.title.length > 30 ? "..." : "")}
+        {/* Content */}
+        <div className="p-4 flex-1 flex flex-col">
+          <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-smooth mb-1 text-sm">
+            {book.title?.length > 35 ? book.title?.slice(0, 35) + "..." : book.title}
           </h3>
-          <p className="text-sm text-muted-foreground line-clamp-1">
-            {book.author}
-          </p>
-
-          <div className="flex gap-2 mt-2 flex-wrap">
-            <Badge key={book.genre} variant="secondary" className="text-xs">
+          <p className="text-sm text-muted-foreground line-clamp-1 mb-3">
+            {book.author}{" "}
+            <Badge key={book.genre} variant="secondary" className="text-xs ml-3">
               {book.genre}
             </Badge>
-          </div>
+          </p>
 
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-            <div className="flex items-center gap-1">
-              <div className="flex items-center gap-1">
-                <div className="flex gap-0.5">
+          <div className="flex gap-2 mt-auto items-end justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-0.5">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
@@ -528,11 +536,12 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
                   {book.rating.toString().slice(0, 3)}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground mt-1">
                 ({book.reviewCount || 0} reviews)
-              </span>
+              </div>
             </div>
-            <Button size="sm" className="text-xs hover-lift">
+
+            <Button size="sm" className="text-xs hover-lift whitespace-nowrap px-4">
               View
             </Button>
           </div>
@@ -541,3 +550,4 @@ function BookCard({ book, delay }: { book: Book; delay: number }) {
     </Card>
   );
 }
+// ...existing code...
