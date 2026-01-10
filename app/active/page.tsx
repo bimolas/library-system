@@ -500,7 +500,8 @@ export default function ActivePage() {
 
           <TabsContent value="history" className="mt-6 animate-fadeIn">
             <Card className="p-6 border-border">
-              <div className="space-y-4">
+              <div className="max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted/40">
+               <div className="space-y-4">
                 {history.length > 0 ? (
                   history.map((h) => (
                     <div
@@ -562,6 +563,7 @@ export default function ActivePage() {
                     </Badge>
                   </div>
                 )}
+                </div>
               </div>
             </Card>
           </TabsContent>

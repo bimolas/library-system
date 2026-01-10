@@ -79,6 +79,8 @@ export default function ScorePage() {
           
           setGenreData(genres.map((g: any, index: number) => ({
             ...g,
+            name:g.genre,
+            type: g.genre,
             color: g.color || `hsl(${(index * 137.5) % 360}, 65%, 55%)`,
           })));
         };

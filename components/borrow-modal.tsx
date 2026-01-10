@@ -83,7 +83,7 @@ export default function BorrowModal({ book, isOpen, onClose, userScore, userLeve
               Enjoy reading "{book.title}". Please return by {returnDate.toLocaleDateString()}.
             </p>
             <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <p className="text-sm font-semibold text-primary">+50 Score Points Earned</p>
+              <p className="text-sm font-semibold text-primary">+10 Score Points Earned</p>
             </div>
           </div>
         ) : step === "confirm" ? (

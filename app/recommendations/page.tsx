@@ -465,7 +465,7 @@ export default function RecommendationsPage() {
                           ))}
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {book.rating.toString().slice(0, 3)}
+                          {(book?.rating ?? "").toString().slice(0, 3)}
                         </span>
                       </div>
                       <Badge className="bg-primary/10 text-primary border-primary/30">

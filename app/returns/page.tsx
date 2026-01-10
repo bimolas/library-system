@@ -36,7 +36,7 @@ export default function ReturnsPage() {
   const handleReturnEarly = async (borrowId: string, bookTitle: string) => {
     const confirmed = await confirm({
       title: "Confirm Early Return",
-      message: `Do you want to return "${bookTitle}" early? You'll earn +50 bonus points for early returns!`,
+      message: `Do you want to return "${bookTitle}" early? You'll earn +10 bonus points for early returns!`,
       confirmText: "Return Book",
       cancelText: "Cancel",
     })
@@ -45,7 +45,7 @@ export default function ReturnsPage() {
       setProcessingId(borrowId)
       const result = await returnBook(borrowId)
       if (result.success) {
-        showSuccess(result.message + " You earned +50 bonus points!")
+        showSuccess(result.message + " You earned +10 bonus points!")
       } else {
         showError(result.message)
       }

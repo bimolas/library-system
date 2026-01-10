@@ -11,6 +11,7 @@ import BorrowModal from "@/components/borrow-modal";
 import ReserveModal from "@/components/reserve-modal";
 import { mockCurrentUser } from "@/lib/mock-data";
 import { getMyRecommendedBooks } from "@/services/book.service";
+import { BASE_URL } from "@/lib/utils";
 
 export function RecommendedBooks() {
   // const recommendedBooks = mockBooks.slice(0, 4)
@@ -31,7 +32,6 @@ export function RecommendedBooks() {
       setError(null);
       try {
         const booksData = await getMyRecommendedBooks();
-        
 
         if (!mounted) return;
         if (booksData && booksData.length > 0) {
@@ -72,71 +72,87 @@ export function RecommendedBooks() {
           </Link>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {
-            loading && (
-              <p className="text-sm text-muted-foreground p-8">Loading…</p>
-            )
-          }
-          {
-            error && (
-              <p className="text-sm text-destructive p-8">Error: {error}</p>
-            )
-          }
-          {recommendedBooks.map((book, index) => (
-            <div
-              key={book.id}
-              className="group cursor-pointer animate-fadeIn"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <Link href={`/catalog/${book.id}`}>
-                <div className="relative mb-4 overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 aspect-[3/4] flex items-center justify-center hover-lift">
-                  <BookMarked className="w-12 h-12 text-primary opacity-40 group-hover:scale-110 transition-smooth" />
-                  <Badge className="absolute top-2 right-2">
-                    {book.demandPressure > 80 ? "High Demand" : "Recommended"}
-                  </Badge>
-                </div>
-              </Link>
-
-              <Link href={`/catalog/${book.id}`}>
-                <h4 className="font-semibold line-clamp-2 group-hover:text-primary transition-smooth">
-                  {book.title}
-                </h4>
-              </Link>
-              <p className="text-sm text-muted-foreground line-clamp-1">
-                {book.author}
-              </p>
-
-              <div className="flex items-center gap-1 mt-2">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-3 h-3 ${
-                        i < Math.floor(book.rating)
-                          ? "fill-accent text-accent"
-                          : "text-border"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {book.rating.toString().slice(0, 3)} 
-                </span>
+        <div className="overflow-x-auto -mx-2 py-2">
+          <div className="flex gap-4 px-2 min-w-max">
+            {loading && (
+              <div className="px-4 flex items-center">
+                <p className="text-sm text-muted-foreground">Loading…</p>
               </div>
-
-              <div className="flex gap-2 mt-3">
-                <Button
-                  size="sm"
-                  className="flex-1 hover-lift"
-                  variant={book.availableCopies > 0 ? "default" : "outline"}
-                  onClick={() => handleBookAction(book)}
-                >
-                  {book.availableCopies > 0 ? "Borrow" : "Reserve"}
-                </Button>
+            )}
+            {error && (
+              <div className="px-4 flex items-center">
+                <p className="text-sm text-destructive">Error: {error}</p>
               </div>
-            </div>
-          ))}
+            )}
+
+            {recommendedBooks.slice(0, 10).map((book, index) => (
+              <div
+                key={book.id}
+                className="group cursor-pointer animate-fadeIn min-w-[160px] sm:min-w-[180px] md:min-w-[200px]"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <Link href={`/catalog/${book.id}`}>
+                  <div className="w-80 relative mb-4 overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 aspect-[3/4] flex items-center justify-center hover-lift">
+                    {book?.coverImage?.startsWith(BASE_URL) ||
+                    book?.coverImage?.startsWith("https://covers") ? (
+                      <img
+                        src={book.coverImage}
+                        className="w-full h-full object-cover block w-16 h-16 text-primary opacity-60 group-hover:scale-110 transition-smooth"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                    <BookMarked className="w-12 h-12 text-primary opacity-40 group-hover:scale-110 transition-smooth" />
+                      </div>
+                    )}
+                    <Badge className="absolute top-2 right-2">
+                      {book.demandPressure > 80 ? "High Demand" : "Recommended"}
+                    </Badge>
+                  </div>
+                </Link>
+
+                <Link href={`/catalog/${book.id}`}>
+                  <h4 className="font-semibold line-clamp-2 group-hover:text-primary transition-smooth w-70">
+                    {book?.title?.length > 30
+                      ? book?.title?.slice(0, 30) + "..."
+                      : book?.title}
+                  </h4>
+                </Link>
+                <p className="text-sm text-muted-foreground line-clamp-1">
+                  {book.author}
+                </p>
+
+                <div className="flex items-center gap-1 mt-2">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-3 h-3 ${
+                          i < Math.floor(book.rating)
+                            ? "fill-accent text-accent"
+                            : "text-border"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {(book.rating ?? "").toString().slice(0, 3)}
+                  </span>
+                </div>
+
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    size="sm"
+                    className="flex-1 hover-lift"
+                    variant={book.availableCopies > 0 ? "default" : "outline"}
+                    onClick={() => handleBookAction(book)}
+                  >
+                    {book.availableCopies > 0 ? "Borrow" : "Reserve"}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </Card>
 
