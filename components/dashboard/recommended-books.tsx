@@ -85,14 +85,14 @@ export function RecommendedBooks() {
               </div>
             )}
 
-            {recommendedBooks.slice(0, 10).map((book, index) => (
+            {recommendedBooks.slice(0, 15).map((book, index) => (
               <div
                 key={book.id}
                 className="group cursor-pointer animate-fadeIn min-w-[160px] sm:min-w-[180px] md:min-w-[200px]"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <Link href={`/catalog/${book.id}`}>
-                  <div className="w-80 relative mb-4 overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 aspect-[3/4] flex items-center justify-center hover-lift">
+                  <div className="w-70 relative mb-4 overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 aspect-[3/4] flex items-center justify-center hover-lift">
                     {book?.coverImage?.startsWith(BASE_URL) ||
                     book?.coverImage?.startsWith("https://covers") ? (
                       <img

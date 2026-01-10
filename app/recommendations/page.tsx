@@ -21,6 +21,7 @@ import {
   getTrendingBooks,
 } from "@/services/book.service";
 import { getLatestBorrowsByNearbyScores } from "@/services/borrow.service";
+import { BASE_URL } from "@/lib/utils";
 
 export default function RecommendationsPage() {
   const [savedBooks, setSavedBooks] = useState<Set<number>>(new Set());
@@ -47,7 +48,7 @@ export default function RecommendationsPage() {
         if (trendingBooks && trendingBooks.length > 0) {
           setTrendingBooks(trendingBooks);
         }
-        if(communityBorrows && communityBorrows.length > 0) {
+        if (communityBorrows && communityBorrows.length > 0) {
           setCommunityBooks(communityBorrows);
         }
       } catch (e: any) {
@@ -219,8 +220,17 @@ export default function RecommendationsPage() {
               >
                 <div className="flex gap-4 mb-4">
                   <Link href={`/catalog/${book.id}`}>
-                    <div className="w-20 h-28 bg-gradient-to-br from-primary/20 to-accent/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
-                      <BookOpen className="w-8 h-8 text-primary opacity-40" />
+                    <div className="w-20 h-28 bg-gradient-to-br from-primary/20 to-accent/20 rounded flex items-center justify-center flex-shrink-0  hover-lift cursor-pointer">
+                      {book?.coverImage?.startsWith(BASE_URL) ||
+                      book?.coverImage?.startsWith("https://covers") ? (
+                          <img
+                            src={book.coverImage}
+                            className="w-full rounded h-full object-cover block w-16 h-16 text-primary opacity-60 items-center justify-center flex-shrink-0"
+                            loading="lazy"
+                          />
+                      ) : (
+                          <BookOpen className="w-8 h-8 text-primary opacity-40" />
+                      )}
                     </div>
                   </Link>
 
@@ -317,8 +327,17 @@ export default function RecommendationsPage() {
               >
                 <div className="flex gap-4 mb-4">
                   <Link href={`/catalog/${book.id}`}>
-                    <div className="w-20 h-28 bg-gradient-to-br from-accent/20 to-primary/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
-                      <TrendingUp className="w-8 h-8 text-accent opacity-40" />
+                    <div className="w-20 h-28 bg-gradient-to-br hover-lift cursor-pointer from-primary/20 to-accent/20 rounded flex items-center justify-center flex-shrink-0 cursor-pointer">
+                      {book?.coverImage?.startsWith(BASE_URL) ||
+                      book?.coverImage?.startsWith("https://covers") ? (
+                          <img
+                            src={book.coverImage}
+                            className="w-full rounded h-full object-cover block w-16 h-16 text-primary opacity-60 items-center justify-center flex-shrink-0 "
+                            loading="lazy"
+                          />
+                      ) : (
+                          <TrendingUp className="w-8 h-8 text-accent opacity-40" />
+                      )}
                     </div>
                   </Link>
 
@@ -420,7 +439,7 @@ export default function RecommendationsPage() {
               </div>
             </Card>
 
-            {communityBooks.map(({book, borrow, user}, index) => (
+            {communityBooks.map(({ book, borrow, user }, index) => (
               <Card
                 key={book.id}
                 className="p-6 border-border hover:border-primary transition-smooth group animate-fadeIn"
@@ -446,7 +465,7 @@ export default function RecommendationsPage() {
                         </p>
                       </div>
                       <Badge className="bg-accent/10 text-accent">
-                        {book.community || "⭐ Popular Pick"} 
+                        {book.community || "⭐ Popular Pick"}
                       </Badge>
                     </div>
 
@@ -470,32 +489,38 @@ export default function RecommendationsPage() {
                       </div>
                       <Badge className="bg-primary/10 text-primary border-primary/30">
                         <Zap className="w-3 h-3 mr-1" />
-                         {
-                        user.tier
-                      }
+                        {user.tier}
                       </Badge>
-                  
-                    
                     </div>
-                       <p className="text-xs text-muted-foreground mt-3">  {(() => {
-                          const then = new Date(borrow.borrowDate).getTime();
-                          const now = Date.now();
-                          const diffMs = Math.max(0, now - then);
+                    <p className="text-xs text-muted-foreground mt-3">
+                      {" "}
+                      {(() => {
+                        const then = new Date(borrow.borrowDate).getTime();
+                        const now = Date.now();
+                        const diffMs = Math.max(0, now - then);
 
-                          const seconds = Math.floor(diffMs / 1000);
-                          const minutes = Math.floor(seconds / 60);
-                          const hours = Math.floor(minutes / 60);
-                          const days = Math.floor(hours / 24);
-                          const months = Math.floor(days / 30);
-                          const years = Math.floor(months / 12);
+                        const seconds = Math.floor(diffMs / 1000);
+                        const minutes = Math.floor(seconds / 60);
+                        const hours = Math.floor(minutes / 60);
+                        const days = Math.floor(hours / 24);
+                        const months = Math.floor(days / 30);
+                        const years = Math.floor(months / 12);
 
-                          if (years > 0) return `${years} year${years > 1 ? "s" : ""} ago`;
-                          if (months > 0) return `${months} month${months > 1 ? "s" : ""} ago`;
-                          if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
-                          if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-                          if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-                          return "just now";
-                        })()}</p>
+                        if (years > 0)
+                          return `${years} year${years > 1 ? "s" : ""} ago`;
+                        if (months > 0)
+                          return `${months} month${months > 1 ? "s" : ""} ago`;
+                        if (days > 0)
+                          return `${days} day${days > 1 ? "s" : ""} ago`;
+                        if (hours > 0)
+                          return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+                        if (minutes > 0)
+                          return `${minutes} minute${
+                            minutes > 1 ? "s" : ""
+                          } ago`;
+                        return "just now";
+                      })()}
+                    </p>
                   </div>
                 </div>
 

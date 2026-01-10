@@ -23,6 +23,7 @@ import {
   cancelReservation,
   getMyReservations,
 } from "@/services/reservations.service";
+import { BASE_URL } from "@/lib/utils";
 
 export default function ActivePage() {
   const [activeTab, setActiveTab] = useState("borrows");
@@ -126,7 +127,7 @@ export default function ActivePage() {
 
     if (confirmed) {
       const data = await returnBook(borrowId);
-      await refreshBorrows()
+      await refreshBorrows();
       if (data) {
         showNotification(
           "success",
@@ -258,8 +259,17 @@ export default function ActivePage() {
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex items-start gap-4 flex-1">
                         <Link href={`/catalog/${borrow?.book?.id}`}>
-                          <div className="w-16 h-24 bg-gradient-to-br from-primary/20 to-accent/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
-                            <BookOpen className="w-8 h-8 text-primary" />
+                              <div className="w-16 h-24 bg-gradient-to-br from-primary/20 to-accent/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
+                            {borrow?.book?.coverImage?.startsWith(BASE_URL) ||
+                            borrow?.book?.coverImage?.startsWith("https://covers") ? (
+                              <img
+                                src={borrow.book.coverImage}
+                                className="w-full rounded h-full object-cover block w-16 h-16 text-primary opacity-60 items-center justify-center flex-shrink-0"
+                                loading="lazy"
+                              />
+                            ) : (
+                                <BookOpen className="w-8 h-8 text-primary" />
+                            )}
                           </div>
                         </Link>
 
@@ -373,7 +383,6 @@ export default function ActivePage() {
           >
             {reservations.length > 0 ? (
               reservations.map((reservation) => {
-                // const book = mockBooks.find((b) => b.id === reservation.book.id);
 
                 return (
                   <Card
@@ -384,7 +393,16 @@ export default function ActivePage() {
                       <div className="flex items-start gap-4 flex-1">
                         <Link href={`/catalog/${reservation?.book?.id}`}>
                           <div className="w-16 h-24 bg-gradient-to-br from-accent/20 to-primary/20 rounded flex items-center justify-center flex-shrink-0 hover-lift cursor-pointer">
+                            {reservation?.book?.coverImage?.startsWith(BASE_URL) ||
+                            reservation?.book?.coverImage?.startsWith("https://covers") ? (
+                              <img
+                                src={reservation.book.coverImage}
+                                className="w-full rounded h-full object-cover block w-16 h-16 text-primary opacity-60 items-center justify-center flex-shrink-0"
+                                loading="lazy"
+                              />
+                            ) : (
                             <Calendar className="w-8 h-8 text-accent" />
+                            )}
                           </div>
                         </Link>
 
@@ -501,68 +519,71 @@ export default function ActivePage() {
           <TabsContent value="history" className="mt-6 animate-fadeIn">
             <Card className="p-6 border-border">
               <div className="max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted/40">
-               <div className="space-y-4">
-                {history.length > 0 ? (
-                  history.map((h) => (
-                    <div
-                      key={h.id}
-                      className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border"
-                    >
+                <div className="space-y-4">
+                  {history.length > 0 ? (
+                    history.map((h) => (
+                      <div
+                        key={h.id}
+                        className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border"
+                      >
+                        <div className="flex items-center gap-4">
+                          {h.status === "COMPLETED" ? (
+                            <div className="w-12 h-16 bg-gradient-to-br from-green-500/20 to-success/20 rounded flex items-center justify-center">
+                              <CheckCircle2 className="w-6 h-6 text-success" />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-16 bg-gradient-to-br from-yellow-500/20 to-warning/20 rounded flex items-center justify-center">
+                              {/* <AlertCircle className="w-6 h-6 text-warning" /> */}
+                              {/* timer icon */}
+                              <Clock className="w-6 h-6 text-warning" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-semibold">
+                              {h.book.title ??
+                                mockBooks.find((b) => b.id === h.bookId)
+                                  ?.title ??
+                                "Unknown"}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {h.book.author ??
+                                mockBooks.find((b) => b.id === h.bookId)
+                                  ?.author ??
+                                ""}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Returned on{" "}
+                              {h.dueDate
+                                ? formatDate(new Date(h.dueDate))
+                                : "—"}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge className="bg-success/10 text-success border-success/30">
+                          {h.pointsGained
+                            ? `+${h.pointsGained} points`
+                            : "+10 points"}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
                       <div className="flex items-center gap-4">
-                        {h.status === "COMPLETED" ? (
-                          <div className="w-12 h-16 bg-gradient-to-br from-green-500/20 to-success/20 rounded flex items-center justify-center">
-                            <CheckCircle2 className="w-6 h-6 text-success" />
-                          </div>
-                        ) : (
-                          <div className="w-12 h-16 bg-gradient-to-br from-yellow-500/20 to-warning/20 rounded flex items-center justify-center">
-                            {/* <AlertCircle className="w-6 h-6 text-warning" /> */}
-                            {/* timer icon */}
-                            <Clock className="w-6 h-6 text-warning" />
-                          </div>
-                        )}
+                        <div className="w-12 h-16 bg-gradient-to-br from-green-500/20 to-success/20 rounded flex items-center justify-center">
+                          <CheckCircle2 className="w-6 h-6 text-success" />
+                        </div>
                         <div>
-                          <p className="font-semibold">
-                            {h.book.title ??
-                              mockBooks.find((b) => b.id === h.bookId)?.title ??
-                              "Unknown"}
-                          </p>
+                          <p className="font-semibold">No history yet</p>
                           <p className="text-sm text-muted-foreground">
-                            {h.book.author ??
-                              mockBooks.find((b) => b.id === h.bookId)
-                                ?.author ??
-                              ""}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Returned on{" "}
-                            {h.dueDate ? formatDate(new Date(h.dueDate)) : "—"}
+                            Borrow and return books to build your history.
                           </p>
                         </div>
                       </div>
                       <Badge className="bg-success/10 text-success border-success/30">
-                        {h.pointsGained
-                          ? `+${h.pointsGained} points`
-                          : "+0 points"}
+                        —
                       </Badge>
                     </div>
-                  ))
-                ) : (
-                  <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-16 bg-gradient-to-br from-green-500/20 to-success/20 rounded flex items-center justify-center">
-                        <CheckCircle2 className="w-6 h-6 text-success" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">No history yet</p>
-                        <p className="text-sm text-muted-foreground">
-                          Borrow and return books to build your history.
-                        </p>
-                      </div>
-                    </div>
-                    <Badge className="bg-success/10 text-success border-success/30">
-                      —
-                    </Badge>
-                  </div>
-                )}
+                  )}
                 </div>
               </div>
             </Card>

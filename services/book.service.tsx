@@ -162,6 +162,7 @@ export async function getTrendingBooks(): Promise<any[]> {
 
   const data = (await res.json()).map((item: any) => {
     return {
+      ...item,
       id: item.id,
       title: item.title,
       author: item.author,
